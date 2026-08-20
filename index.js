@@ -1,13 +1,16 @@
 #!/usr/bin/node
 
 import tcp from 'net'
+import { WebSocketServer } from 'ws'
 import { SerialPort } from 'serialport'
 
 var init = true
 var buffer = ''
 var history = []
 var connections = []
+var wsConnections = []
 var server = new tcp.Server()
+var wss = new WebSocketServer({ port: 7000 })
 
 server.on('connection', connection => {
 	console.log('got connection:', connection.remoteAddress)
@@ -42,6 +45,28 @@ server.listen('9000', '::', err => {
 	console.log('tcp server listening at:', server.address())
 })
 
+wss.on('connection', ws => {
+	console.log('got ws connection')
+	wsConnections.push(ws)
+	console.log('total ws connections:', wsConnections.length)
+	ws.on('close', () => {
+		close()
+	})
+	ws.on('error', err => {
+		console.log('ws connection error:', err)
+		close()
+	})
+	function close () {
+		console.log('ws connection close')
+		wsConnections = wsConnections.filter(c => c !== ws)
+		console.log('total ws connections:', wsConnections.length)
+	}
+})
+
+wss.on('listening', () => {
+	console.log('websocket server listening at:', wss.address())
+})
+
 openInput()
 
 async function openInput () {
@@ -68,6 +93,7 @@ async function openInput () {
 		lines.forEach(line => {
 			console.log(line)
 			connections.forEach(c => c.write(line + '\r\n'))
+			wsConnections.forEach(c => c.send(line + '\r\n'))
 			// if (history.length > 100) history.shift()
 			// history.push(line)
 		})
