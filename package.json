@@ -2,10 +2,6 @@
   "type": "module",
   "dependencies": {
     "ggencoder": "^1.0.10",
-    "serialport": "^13.0.0",
     "ws": "^8.21.3"
-  },
-  "allowScripts": {
-    "serialport@13.0.0": true
   }
 }

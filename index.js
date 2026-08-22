@@ -1,106 +1,109 @@
-#!/usr/bin/node
+#!/bin/env node
 
+import fs from 'fs/promises'
 import tcp from 'net'
-import { WebSocketServer } from 'ws'
-import { SerialPort } from 'serialport'
+import { exec } from 'child_process'
 
-var init = true
-var buffer = ''
-var history = []
-var connections = []
-var wsConnections = []
-var server = new tcp.Server()
-var wss = new WebSocketServer({ port: 7000 })
+const env = process.env
+const serialPort = env.SERIAL_PORT || '/dev/ttyAMA0'
+const serialPortBaudRate = env.SERIAL_BUAD_RATE || '115200'
+const serialPortReopenInterval = parseInt(env.SERIAL_PORT_RECONNECT || '5000')
+const tcpHost = env.TCP_HOST || '::'
+const tcpPort = env.TCP_PORT || '9000'
 
-server.on('connection', connection => {
-	console.log('got connection:', connection.remoteAddress)
-	connection.setNoDelay(true)
-	connections.push(connection)
-	console.log('total connections:', connections.length)
-	connection.on('data', data => {
-		console.log('ais socket rx data', data.toString())
-		connection.destroy()
-	})
-	connection.on('end', () => {
-		console.log('connection end:', connection.remoteAddress)
-		// close()
-	})
-	connection.on('close', () => {
-		close()
-	})
-	connection.on('error', err => {
-		console.log('connection error:', connection.remoteAddress, err)
-		close()
-	})
-	function close () {
-		console.log('connection close:', connection.remoteAddress)
-		connections = connections.filter(c => c !== connection)
-		console.log('total connections:', connections.length)
-	}
-	// var now = Date.now()
-	// history.forEach(line => connection.write(line + '\r\n'))
-})
+let buffer = ''
+let tcpConnections = []
+const tcpServer = new tcp.Server()
+const stats = { messages: 0, visitors: {}, strange: [] }
+const statsInterval = 1000 * 5
+const renderRate = 100
+let renderTimeout = null
+let firstRender = true
 
-server.listen('9000', '::', err => {
-	console.log('tcp server listening at:', server.address())
-})
+openSerialPort()
+openTcpServer()
+setInterval(renderStats, statsInterval)
 
-wss.on('connection', ws => {
-	console.log('got ws connection')
-	wsConnections.push(ws)
-	console.log('total ws connections:', wsConnections.length)
-	ws.on('close', () => {
-		close()
-	})
-	ws.on('error', err => {
-		console.log('ws connection error:', err)
-		close()
-	})
-	function close () {
-		console.log('ws connection close')
-		wsConnections = wsConnections.filter(c => c !== ws)
-		console.log('total ws connections:', wsConnections.length)
-	}
-})
-
-wss.on('listening', () => {
-	console.log('websocket server listening at:', wss.address())
-})
-
-openInput()
-
-async function openInput () {
-	const file = '/dev/ttyAMA0'
-	const port = new SerialPort({ path: file, baudRate: 115200 })
-	port.on('open', () => {
-		console.log(`data port open (${file})`)
-		// port.write('v\n')
-	})
-	port.on('data', data => {
-		buffer += data.toString()
-		var lines = buffer.split('\r\n')
-		if (lines.length < 2) return
-		if (init) {
-			init = false
-			lines.shift()
-		} 
-		var lastLine = lines.pop()
-		if (lastLine === '') {
-			buffer = ''
-		} else {
-			buffer = lastLine
-		}
-		lines.forEach(line => {
-			console.log(line)
-			connections.forEach(c => c.write(line + '\r\n'))
-			wsConnections.forEach(c => c.send(line + '\r\n'))
-			// if (history.length > 100) history.shift()
-			// history.push(line)
-		})
-	})
-	port.on('close', () => {
-		console.log(`data port closed (${file})`)
+async function openSerialPort () {
+	try {
+		await exec(`stty -F ${serialPort} ispeed ${serialPortBaudRate}`)
+		const fd = await fs.open(serialPort)
+		const s = fd.createReadStream(fd)
 		buffer = ''
-		setTimeout(openInput, 5000)
+		s.on('data', data => {
+			// console.log(`got new data: ${data.length}`, data.toString())
+			buffer += data.toString()
+			requestRender()
+		})
+		fd.on('close', () => {
+			console.error(`${serialPort} closed unexpectedly, retrying in ${reconnectInterval}`)
+			setTimeout(openSerialPort, reconnectInterval)
+		})
+	} catch (err) {
+		console.error(err)
+		console.error(`failed to open ${serialPort}, retrying in ${serialPortReopenInterval}`)
+		setTimeout(openSerialPort, serialPortReopenInterval)
+	}
+}
+
+function openTcpServer () {
+	tcpServer.on('connection', c => {
+		const id = c.remoteAddress
+		console.log('connection.open:', id)
+		if (!stats.visitors[id]) {
+			stats.visitors[id] = 0
+		}
+		tcpConnections.push(c)
+		c.on('data', data => {
+			console.log('connection.data:', data.toString())
+			c.destroy()
+		})
+		c.on('end', () => {
+			console.log('connection.end:', id)
+		})
+		c.on('close', () => {
+			close()
+		})
+		c.on('error', err => {
+			console.log('connection.error:', id, err)
+			close()
+		})
+		c.setNoDelay(true)
+		function close () {
+			console.log('connection.close:', id)
+			tcpConnections = tcpConnections.filter(_c => _c !== c)
+		}
 	})
+	tcpServer.listen(tcpPort, tcpHost, err => {
+		console.log('tcp server listening at:', tcpServer.address())
+	})
+}
+
+function requestRender () {
+	if (renderTimeout) return
+	renderTimeout = setTimeout(render, renderRate)
+}
+
+function render () {
+	const lines = buffer.split('\r\n')
+	buffer = lines.at(-1)
+	if (lines[0][0] !== '!') {
+		stats.strange.push(lines.shift())
+	}
+	stats.connections = tcpConnections.length
+	stats.messages += lines.length
+	const chunk = lines.join('\r\n') + '\r\n'
+	tcpConnections.forEach(c => {
+		stats.visitors[c.remoteAddress] += chunk.length
+		c.write(chunk)
+	})
+	renderTimeout = null
+	if (firstRender) {
+		firstRender = false
+		renderStats()
+	}
+}
+
+function renderStats () {
+	console.log(`stats (${statsInterval / 1000}s):`, stats)
 }
