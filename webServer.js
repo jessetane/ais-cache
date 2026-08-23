@@ -8,6 +8,7 @@ const env = process.env
 const aisHost = env.AIS_HOST || '::1'
 const aisPort = env.AIS_PORT || 9000
 const aisReconnectInterval = parseInt(env.AIS_RECONNECT || 5000)
+const aisSession = {}
 let wss = null
 let wsConnections = []
 const wsHost = env.WS_HOST || '::'
@@ -98,7 +99,7 @@ function renderShipStatus () {
 function updateShip (m) {
 	let ship;
 	try {
-		ship = new ggencoder.AisDecode(m)
+		ship = new ggencoder.AisDecode(m, aisSession)
 	} catch (err) {
 		// console.error('updateShip: bad message', err)
 		return
@@ -118,4 +119,5 @@ function updateShip (m) {
 		updated: now,
 	}
 	ships.set(mmsi, ship)
+	return ship
 }
