@@ -305,7 +305,7 @@ function AisDecode (input, session) {
 			break;
 		case 18: // class B position report
 			this.class  = 'B';
-			this.status = -1;  // Class B targets have no status.  Enforce this...
+			
 			var lon = this.GetInt(57, 28 );
 			if (lon & 0x08000000 ) lon |= 0xf0000000;
 			lon = parseFloat (lon / 600000);
@@ -328,7 +328,6 @@ function AisDecode (input, session) {
 			break;
 		case 19: // Extended class B position report
 			this.class  = 'B';
-			this.status = -1;  // Class B targets have no status.  Enforce this...
 
 			var lon = this.GetInt(57, 28 );
 			if (lon & 0x08000000 ) lon |= 0xf0000000;
@@ -416,9 +415,8 @@ function AisDecode (input, session) {
 			}
 			break;
 		case 4:  // base station
-		case 11: // UTC/Date Response
 			this.class	  = '-';
-
+		case 11: // UTC/Date Response
 			var lon = this.GetInt(79, 28);
 			if (lon & 0x08000000 ) lon |= 0xf0000000;
 			lon = parseFloat (lon / 600000);
@@ -492,7 +490,6 @@ function AisDecode (input, session) {
 
 			break;
 		case 14: // text msg
-			this.class	  = '-';
 			if (this.bitarray.length > 40/6) {
 				var len = parseInt(( ( this.bitarray.length - 40/6 ) / 6 ) * 6)*6;
 				this.txt = this.GetStr(40, len).trim();
@@ -504,7 +501,6 @@ function AisDecode (input, session) {
 				this.fid = this.GetInt(50, 6 );
 				// Inland ship static and voyage related data
 				if (this.dac === 200 && this.fid === 10 ) {
-					this.class	   = '-';
 					this.ENI		 = this.GetStr(56,48).trim();
 					this.length	  = parseFloat(this.GetInt(104, 13 )) /10.;
 					this.width	   = parseFloat(this.GetInt(117, 10 )) /10.;
@@ -515,7 +511,6 @@ function AisDecode (input, session) {
 				// meteorological and hydrographic data
 				else if (this.dac === 1 && this.fid === 31 ) {
 					// https://academy.iala-aism.org/asm/meteorological-hydrographic-data/
-					this.class	   = '-';
 					var lon = this.GetInt(56, 25);
 					if (lon & 0x01000000) lon |= 0xfe000000;
 					lon = parseFloat (lon / 60000);
@@ -642,7 +637,6 @@ function AisDecode (input, session) {
 				// meteorological and hydrographic data (Deprecated)
 				else if (this.dac === 1 && this.fid === 11 ) {
 					// https://academy.iala-aism.org/asm/metreorological-hydrological-data-2/
-					this.class	   = '-';
 					var lon = this.GetInt(80, 25);
 					if (lon & 0x01000000) lon |= 0xfe000000;
 					lon = parseFloat (lon / 60000);
@@ -767,7 +761,6 @@ function AisDecode (input, session) {
 				// meteorological and hydrographic data
 				else if (this.dac === 367 && this.fid === 33 ) {
 					// https://www.e-navigation.nl/sites/default/files/asm_files/em_version_release_3-23mar15_0.pdf
-					this.class	   = '-';
 					var len = Math.floor((this.msglen * 6)/112);
 					for(var i=0 ; i<len ; i++) {
 						this.reporttype	= parseInt(this.GetInt(56 + (112*i), 4));
@@ -884,7 +877,6 @@ function AisDecode (input, session) {
 				}
 			break;
 		case 27: // Long Range AIS Broadcast message
-			this.class  = '-';
 			this.navstatus  = this.GetInt( 40, 4);
 
 			var lon = this.GetInt(44, 18 );
