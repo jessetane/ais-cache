@@ -272,6 +272,15 @@ function AisDecode (input, session) {
 	this.immsi	 = this.GetInt (8,30);
 	this.mmsi	  = ("000000000" + this.immsi).slice(-9);
 	this.mmsikey   = this.mmsi;
+	this.stationType = 1 // vessel
+
+	// non-vessel station types
+	if (mmsi.startsWith('00')) this.stationType = 2 // base_station
+	else if (mmsi.startsWith('111')) this.stationType = 3 // sar_aircraft
+	else if (mmsi.startsWith('99')) this.stationType = 4 // aton
+	else if (mmsi.startsWith('970')) this.stationType = 5 // ais_sart
+	else if (mmsi.startsWith('972')) this.stationType = 6 // mob
+	else if (mmsi.startsWith('974')) this.stationType = 7 // epirb
 
 	switch (this.aistype) {
 		case 1:
