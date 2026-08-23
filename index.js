@@ -2,7 +2,9 @@
 
 import fs from 'fs/promises'
 import tcp from 'net'
-import { exec } from 'child_process'
+import { exec as execCb } from 'child_process'
+import { promisify } from 'util'
+const exec = promisify(execCb)
 
 const env = process.env
 const serialPort = env.SERIAL_PORT || '/dev/ttyAMA0'
