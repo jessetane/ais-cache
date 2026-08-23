@@ -49,6 +49,7 @@ function openWsServer () {
 			console.log('ws connection error:', err)
 			close()
 		})
+		ws.send(JSON.stringify(Object.values(ships)))
 		function close () {
 			console.log('ws connection close')
 			wsConnections = wsConnections.filter(c => c !== ws)
