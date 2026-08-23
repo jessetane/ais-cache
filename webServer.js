@@ -81,7 +81,7 @@ function render () {
 		wssConnections.forEach(c => c.send(JSON.stringify(changes)))
 	}
 	renderTimeout = null
-	console.log(ships)
+	// console.log(ships)
 }
 
 function renderShipStatus () {
@@ -100,10 +100,11 @@ function updateShip (m) {
 	try {
 		ship = new ggencoder.AisDecode(m)
 	} catch (err) {
-		console.error('updateShip: bad message', err)
+		// console.error('updateShip: bad message', err)
+		return
 	}
 	if (!ship || !ship.valid || !ship.mmsi) {
-		console.error('updateShip: invalid ship:', ship)
+		// console.error('updateShip: invalid ship:', ship)
 		return
 	}
 	delete ship.bitarray
