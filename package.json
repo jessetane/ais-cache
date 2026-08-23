@@ -1,7 +1,6 @@
 {
   "type": "module",
   "dependencies": {
-    "ggencoder": "^1.0.10",
     "ws": "^8.21.3"
   }
 }
