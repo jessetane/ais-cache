@@ -13,7 +13,7 @@ let wss = null
 let wsConnections = []
 const wsHost = env.WS_HOST || '::'
 const wsPort = env.WS_PORT || 9001
-const renderRate = 1000
+const renderRate = 250
 let renderTimeout = null
 const renderShipStatusRate = 2500
 const dead = 1000 * 60 * 1
@@ -79,7 +79,9 @@ function render () {
 		}
 	}
 	if (changes.length) {
-		wssConnections.forEach(c => c.send(JSON.stringify(changes)))
+		wsConnections.forEach(c => {
+			c.send(JSON.stringify(changes))
+		})
 	}
 	renderTimeout = null
 	// console.log(ships)
