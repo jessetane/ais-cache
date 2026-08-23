@@ -15,8 +15,7 @@ const wsPort = env.WS_PORT || 9001
 const renderRate = 1000
 let renderTimeout = null
 const renderShipStatusRate = 2500
-const stale = 1000 * 60 * 2
-const dead = 1000 * 60 * 5
+const dead = 1000 * 60 * 1
 const ships = new Map()
 let buffer = ''
 
@@ -92,9 +91,6 @@ function renderShipStatus () {
 		if (elapsed >= dead) {
 			ships.delete(mmsi)
 			console.log(`ship dead: ${mmsi}`)
-		} else if (elapsed >= stale && ship.status !== 'inactive') {
-			ship.status = 'inactive'
-			console.log(`ship inactive: ${mmsi}`)
 		}
 	}
 }
@@ -119,7 +115,6 @@ function updateShip (m) {
 		...currentShip,
 		...ship,
 		updated: now,
-		status: 'active',
 	}
 	ships.set(mmsi, ship)
 }
