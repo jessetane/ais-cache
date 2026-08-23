@@ -8,7 +8,7 @@ const exec = promisify(execCb)
 
 const env = process.env
 const serialPort = env.SERIAL_PORT || '/dev/ttyAMA0'
-const serialPortBaudRate = env.SERIAL_BUAD_RATE || '115200'
+const serialPortBaudRate = env.SERIAL_BAUD_RATE || '115200'
 const serialPortReopenInterval = parseInt(env.SERIAL_PORT_RECONNECT || '5000')
 const tcpHost = env.TCP_HOST || '::'
 const tcpPort = env.TCP_PORT || '9000'
@@ -38,8 +38,8 @@ async function openSerialPort () {
 			requestRender()
 		})
 		fd.on('close', () => {
-			console.error(`${serialPort} closed unexpectedly, retrying in ${reconnectInterval}`)
-			setTimeout(openSerialPort, reconnectInterval)
+			console.error(`${serialPort} closed unexpectedly, retrying in ${serialPortReopenInterval}`)
+			setTimeout(openSerialPort, serialPortReopenInterval)
 		})
 	} catch (err) {
 		console.error(err)
