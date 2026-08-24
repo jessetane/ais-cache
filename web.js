@@ -42,7 +42,7 @@ function openAisSocket () {
 		requestRender()
 	})
 	socket.on('close', () => {
-		setTimeout(openAisSocket, aisReconnectInterval)		
+		setTimeout(openAisSocket, aisReconnectInterval)
 	})
 }
 
