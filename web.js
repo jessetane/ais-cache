@@ -1,11 +1,14 @@
 #!/usr/bin/node
 
+import fs from 'fs/promises'
 import tcp from 'net'
 import AisDecoder from './ais/decoder.js'
 import aisTTL from './ais/ttl.js'
 import { WebSocketServer } from 'ws'
 
 const env = process.env
+const stateFile = env.STATE_FILE || './state.json'
+const stateSaveRate = parseInt(env.STATE_SAVE_RATE || 30000)
 const aisHost = env.AIS_HOST || '::1'
 const aisPort = env.AIS_PORT || 9000
 const aisReconnectInterval = parseInt(env.AIS_RECONNECT || 5000)
@@ -24,10 +27,12 @@ const renderShipStatusRate = 2500
 const ships = new Map()
 let buffer = ''
 
+await loadState()
 openAisSocket()
 openTcpServer()
 openWsServer()
 setInterval(renderShipStatus, renderShipStatusRate)
+setInterval(saveState, stateSaveRate)
 
 function openAisSocket () {
 	const socket = tcp.connect(aisPort, aisHost)
@@ -152,7 +157,7 @@ function renderShipStatus () {
 }
 
 function updateShip (m) {
-	let ship;
+	let ship
 	try {
 		ship = new AisDecoder(m, aisSession)
 	} catch (err) {
@@ -184,4 +189,37 @@ function updateShip (m) {
 	currentShip.updated = now
 	currentShip.messages[m.aistype] = m
 	return currentShip
+}
+
+async function loadState () {
+	try {
+		const raw = await fs.readFile(stateFile, 'utf8')
+		const data = JSON.parse(raw)
+		for (const ship of data) {
+			const messages = ship.messages || {}
+			delete ship.messages
+			Object.defineProperty(ship, 'messages', {
+				value: messages,
+				enumerable: false
+			})
+			ships.set(ship.mmsi, ship)
+		}
+		console.log(`loaded ${ships.size} ships from ${stateFile}`)
+	} catch (err) {
+		if (err.code !== 'ENOENT') {
+			console.error('failed to load state:', err)
+		}
+	}
+}
+
+async function saveState () {
+	try {
+		const data = []
+		for (const [mmsi, ship] of ships.entries()) {
+			data.push({ ...ship, messages: ship.messages })
+		}
+		await fs.writeFile(stateFile, JSON.stringify(data, null, '\t'))
+	} catch (err) {
+		console.error('failed to save state:', err)
+	}
 }
