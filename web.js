@@ -156,15 +156,15 @@ function updateShip (m) {
 	try {
 		ship = new AisDecoder(m, aisSession)
 	} catch (err) {
-		console.error('updateShip: bad message', err, ship, m)
+		// console.error('updateShip: bad message', err, ship, m)
 		return
 	}
 	if (!ship || !ship.mmsi) {
-		console.error('updateShip: missing mmsid:', ship, m)
+		// console.error('updateShip: missing mmsid:', ship, m)
 		return
 	}
 	if (!ship.valid) {
-		console.error('updateShip: invalid ship:', ship, m)
+		// console.error('updateShip: invalid ship:', ship, m)
 		return
 	}
 	delete ship.bitarray
