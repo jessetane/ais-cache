@@ -1,7 +1,8 @@
 #!/usr/bin/node
 
 import tcp from 'net'
-import ggencoder from 'ggencoder'
+import AisDecoder from './ais/decoder.js'
+import aisTTL from './ais/ttl.js'
 import { WebSocketServer } from 'ws'
 
 const env = process.env
@@ -16,7 +17,6 @@ const wsPort = env.WS_PORT || 9001
 const renderRate = 250
 let renderTimeout = null
 const renderShipStatusRate = 2500
-const dead = 1000 * 60 * 1
 const ships = new Map()
 let buffer = ''
 
@@ -93,7 +93,7 @@ function renderShipStatus () {
 	const now = new Date()
 	for (const [mmsi, ship] of ships.entries()) {
 		const elapsed = now - ship.updated
-		if (elapsed >= dead) {
+		if (elapsed >= aisTTL[ship.stationType]) {
 			ships.delete(mmsi)
 			console.log(`ship dead: ${mmsi}`)
 		}
@@ -103,7 +103,7 @@ function renderShipStatus () {
 function updateShip (m) {
 	let ship;
 	try {
-		ship = new ggencoder.AisDecode(m, aisSession)
+		ship = new AisDecoder(m, aisSession)
 	} catch (err) {
 		// console.error('updateShip: bad message', err)
 		return

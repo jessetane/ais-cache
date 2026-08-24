@@ -1,0 +1,66 @@
+x-log {
+	position: fixed;
+	bottom: 0;
+	width: 100%;
+	pointer-events: none;
+	display: flex;
+	align-items: flex-end;
+	justify-content: flex-end;
+	padding: 1rem;
+	flex-direction: column;
+}
+
+x-log .message {
+	pointer-events: all;
+	cursor: pointer;
+	text-align: left;
+	max-width: 470px;
+	background-color: #666;
+	border-radius: 0.5rem;
+	padding: 1em;
+	margin-top: 0.5rem;
+	color: #FFF;
+	opacity: 1;
+	line-height: 1.4;
+	--duration: 0.35s;
+	--ease: ease-out;
+	transition: transform var(--duration) var(--ease),
+	            opacity var(--duration) var(--ease),
+	            line-height var(--duration) var(--ease),
+	            padding-top var(--duration) var(--ease),
+	            padding-bottom var(--duration) var(--ease),
+	            margin-top var(--duration) var(--ease);
+}
+
+x-log .message.before {
+	transform: translate(0, 100%);
+	opacity: 0;
+	line-height: 0;
+	margin-top: 0;
+	padding-top: 0;
+	padding-bottom: 0;
+}
+
+x-log .message.after {
+	transform: translate(0, -25%);
+	opacity: 0;
+	--duration: 0.35s;
+	--ease: ease-in;
+	transition: transform var(--duration) var(--ease),
+	            opacity var(--duration) var(--ease),
+	            line-height var(--duration) var(--ease),
+	            padding-top var(--duration) var(--ease),
+	            padding-bottom var(--duration) var(--ease),
+	            margin-top var(--duration) var(--ease);
+}
+
+x-log .message.after2 {
+	line-height: 0;
+	margin-top: 0;
+	padding-top: 0;
+	padding-bottom: 0;
+}
+
+x-log .message.error {
+	background: #ff4c4c;
+}
