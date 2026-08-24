@@ -10,10 +10,14 @@ const aisHost = env.AIS_HOST || '::1'
 const aisPort = env.AIS_PORT || 9000
 const aisReconnectInterval = parseInt(env.AIS_RECONNECT || 5000)
 const aisSession = {}
-let wss = null
-let wsConnections = []
+const tcpHost = env.TCP_HOST || '::'
+const tcpPort = env.TCP_PORT || '9001'
+const tcpServer = new tcp.Server()
+let tcpConnections = []
 const wsHost = env.WS_HOST || '::'
-const wsPort = env.WS_PORT || 9001
+const wsPort = env.WS_PORT || 9002
+let wsServer = null
+let wsConnections = []
 const renderRate = 250
 let renderTimeout = null
 const renderShipStatusRate = 2500
@@ -21,6 +25,7 @@ const ships = new Map()
 let buffer = ''
 
 openAisSocket()
+openTcpServer()
 openWsServer()
 setInterval(renderShipStatus, renderShipStatusRate)
 
@@ -36,9 +41,49 @@ function openAisSocket () {
 	})
 }
 
+function openTcpServer () {
+	tcpServer.on('connection', c => {
+		const id = c.remoteAddress
+		console.log('connection.open:', id)
+		tcpConnections.push(c)
+		c.on('data', data => {
+			console.log('connection.data:', data.toString())
+			c.destroy()
+		})
+		c.on('end', () => {
+			console.log('connection.end:', id)
+		})
+		c.on('close', () => {
+			close()
+		})
+		c.on('error', err => {
+			console.log('connection.error:', id, err)
+			close()
+		})
+		c.setNoDelay(true)
+		const messages = []
+		for (const [mmsi, ship] of ships.entries()) {
+			for (let t in ship.messages) {
+				const m = ship.messages[t]
+				messages.push(m)
+			}
+		}
+		if (messages.length) {
+			c.write(messages.join('\r\n') + '\r\n')
+		}
+		function close () {
+			console.log('connection.close:', id)
+			tcpConnections = tcpConnections.filter(_c => _c !== c)
+		}
+	})
+	tcpServer.listen(tcpPort, tcpHost, err => {
+		console.log('tcp server listening at:', tcpServer.address())
+	})
+}
+
 function openWsServer () {
-	wss = new WebSocketServer({ port: wsPort, host: wsHost })
-	wss.on('connection', ws => {
+	wsServer = new WebSocketServer({ port: wsPort, host: wsHost })
+	wsServer.on('connection', ws => {
 		console.log('got ws connection')
 		wsConnections.push(ws)
 		console.log('total ws connections:', wsConnections.length)
@@ -57,8 +102,8 @@ function openWsServer () {
 			console.log('total ws connections:', wsConnections.length)
 		}
 	})
-	wss.on('listening', () => {
-		console.log('websocket server listening at:', wss.address())
+	wsServer.on('listening', () => {
+		console.log('websocket server listening at:', wsServer.address())
 	})
 }
 
@@ -70,7 +115,9 @@ function requestRender () {
 function render () {
 	const lines = buffer.split('\r\n')
 	buffer = lines.pop()
-	if (lines[0]?.[0] !== '!') {
+	const firstLine = lines[0]
+	const firstChar = firstLine?.[0]
+	if (firstChar !== '!') {
 		lines.shift()
 	}
 	const changes = []
@@ -81,6 +128,10 @@ function render () {
 		}
 	}
 	if (changes.length) {
+		const messages = lines.join('\r\n') + '\r\n'
+		tcpConnections.forEach(c => {
+			c.write(messages)
+		})
 		wsConnections.forEach(c => {
 			c.send(JSON.stringify(changes))
 		})
@@ -105,23 +156,32 @@ function updateShip (m) {
 	try {
 		ship = new AisDecoder(m, aisSession)
 	} catch (err) {
-		// console.error('updateShip: bad message', err)
+		console.error('updateShip: bad message', err, ship, m)
 		return
 	}
-	if (!ship || !ship.valid || !ship.mmsi) {
-		// console.error('updateShip: invalid ship:', ship)
+	if (!ship || !ship.mmsi) {
+		console.error('updateShip: missing mmsid:', ship, m)
+		return
+	}
+	if (!ship.valid) {
+		console.error('updateShip: invalid ship:', ship, m)
 		return
 	}
 	delete ship.bitarray
 	delete ship.payload
 	const now = Date.now()
 	const mmsi = ship.mmsi
-	const currentShip = ships.get(mmsi) || { mmsi, created: now }
-	ship = {
-		...currentShip,
-		...ship,
-		updated: now,
+	let currentShip = ships.get(mmsi)
+	if (!currentShip) {
+		currentShip = { mmsi, created: now }
+		ships.set(mmsi, currentShip)
+		Object.defineProperty(currentShip, 'messages', {
+			value: {},
+			enumerable: false
+		})
 	}
-	ships.set(mmsi, ship)
-	return ship
+	Object.assign(currentShip, ship)
+	currentShip.updated = now
+	currentShip.messages[m.aistype] = m
+	return currentShip
 }
