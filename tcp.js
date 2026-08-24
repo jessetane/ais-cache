@@ -89,8 +89,13 @@ function requestRender () {
 function render () {
 	const lines = buffer.split('\r\n')
 	buffer = lines.pop()
-	if (lines[0]?.[0] !== '!') {
+	const firstLine = lines[0]
+	const firstChar = firstLine?.[0]
+	if (firstChar !== '!') {
 		stats.strange.push(lines.shift())
+		if (stats.strange.length > 10) {
+			stats.strange.shift()
+		}
 	}
 	stats.connections = tcpConnections.length
 	stats.messages += lines.length
