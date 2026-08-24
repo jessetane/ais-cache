@@ -20,13 +20,18 @@ const STATION_COLOR = {
 
 function renderShipMeta (ship) {
 	const meta = {
+		// messageType: MSG_TYPE[ship.aistype],
 		mmsi: ship.mmsi,
 		name: ship.shipname,
 		stationType: STATION_TYPE[ship.stationType],
 		vesselType: VESSEL_TYPE[ship.cargo],
-		destination: ship.destination,
-		// messageType: MSG_TYPE[ship.aistype],
 		status: NAV_STATUS[ship.navstatus],
+		destination: ship.destination || undefined,
+		length: ship.length || undefined,
+		width: ship.width || undefined,
+		sog: ship.sog,
+		cog: ship.cog,
+		rot: ship.rot,
 	}
 	for (let key in meta) {
 		if (meta[key] === undefined) {
@@ -116,7 +121,7 @@ class Home extends HTMLElement {
 					borderColor: '#222',
 					glyphColor: '#222',
 				})
-				marker.append(pin.element)
+				marker.append(pin)
 				marker.ship = ship
 				marker.addEventListener('gmp-click', this.onmarkerClick)
 				this.markers.set(mmsi, marker)
