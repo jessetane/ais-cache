@@ -8,6 +8,16 @@ import {
 	VESSEL_TYPE,
 } from '../ais/strings.js'
 
+const STATION_COLOR = {
+	1: '#2563eb', // Vessel (Blue)
+	2: '#16a34a', // Base Station (Green)
+	3: '#ea580c', // SAR Aircraft (Orange)
+	4: '#ca8a04', // Aid-to-Navigation (Yellow)
+	5: '#dc2626', // AIS-SART (Red)
+	6: '#9333ea', // AIS-MOB (Purple)
+	7: '#db2777', // EPIRB (Pink)
+}
+
 function renderShipMeta (ship) {
 	const meta = {
 		mmsi: ship.mmsi,
@@ -94,20 +104,25 @@ class Home extends HTMLElement {
 			activeShips.add(mmsi)
 			const title = mmsi
 			const position = { lat: ship.lat, lng: ship.lon, altitude: 0 }
+			const color = STATION_COLOR[ship.stationType]
 			let marker = this.markers.get(mmsi)
 			if (!marker) {
 				marker = new gm.Marker3DInteractiveElement({
 					position,
-					title,
 					altitudeMode: 'CLAMP_TO_GROUND'
 				})
+				const pin = marker.pin = new gm.PinElement({
+					background: color,
+					borderColor: '#222',
+					glyphColor: '#222',
+				})
+				marker.append(pin.element)
 				marker.ship = ship
 				marker.addEventListener('gmp-click', this.onmarkerClick)
 				this.markers.set(mmsi, marker)
 				this.map.append(marker)
 			} else {
 				marker.position = position
-				marker.title = title
 				if (marker.pop?.open) {
 					const meta = renderShipMeta(ship)
 					const info = JSON.stringify(meta, null, 2)

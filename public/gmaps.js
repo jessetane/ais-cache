@@ -13,3 +13,7 @@ export const {
 	Model3DElement,
 	Polygon3DElement
 } = await google.maps.importLibrary('maps3d')
+
+export const {
+	PinElement
+} = await google.maps.importLibrary('marker')
