@@ -12,15 +12,14 @@ const serialPortBaudRate = env.SERIAL_BAUD_RATE || '115200'
 const serialPortReopenInterval = parseInt(env.SERIAL_PORT_RECONNECT || '5000')
 const tcpHost = env.TCP_HOST || '::'
 const tcpPort = env.TCP_PORT || '9000'
-
-let buffer = ''
-let tcpConnections = []
 const tcpServer = new tcp.Server()
+let tcpConnections = []
 const stats = { messages: 0, visitors: {}, strange: [] }
 const statsInterval = 1000 * 5
 const renderRate = 100
 let renderTimeout = null
 let firstRender = true
+let buffer = ''
 
 openSerialPort()
 openTcpServer()
