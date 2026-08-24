@@ -28,7 +28,7 @@ setInterval(renderStats, statsInterval)
 
 async function openSerialPort () {
 	try {
-		await exec(`stty -F ${serialPort} ispeed ${serialPortBaudRate}`)
+		await exec(`stty -F ${serialPort} raw -echo ispeed ${serialPortBaudRate}`)
 		const fd = await fs.open(serialPort)
 		const s = fd.createReadStream(fd)
 		buffer = ''
