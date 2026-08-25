@@ -73,9 +73,6 @@ class Home extends HTMLElement {
 	onmarkerClick = evt => {
 		const map = this.map
 		const marker = this.selection = evt.target
-		const ship = marker.ship
-		const meta = renderShipMeta(ship)
-		const info = JSON.stringify(meta, null, 2)
 		let pop = marker.pop
 		if (!pop) {
 			pop = marker.pop = new gm.PopoverElement({
@@ -83,7 +80,7 @@ class Home extends HTMLElement {
 				autoPanDisabled: true,
 			})
 		}
-		pop.innerHTML = `<pre style=font-size:0.8rem>${info}</pre>`
+		this.renderPopover(pop, marker.ship)
 		pop.open = true
 		map.append(pop)
 		/*
@@ -123,35 +120,29 @@ class Home extends HTMLElement {
 			const color = STATION_COLOR[ship.stationType]
 			const elapsed = now - ship.updated
 			const isOld = elapsed >= (aisTTL[ship.stationType]?.oldAge ?? Infinity)
-			const opacity = isOld ? '0.5' : '1'
+			const isMoving = ship.stationType !== 1 || ship.sog !== undefined && ship.sog > 0.3
+			const isStationary = STATIONARY_NAV_STATUS.has(ship.navstatus) || !isMoving
+			const opacity = isOld || isStationary ? '80' : 'ff'
 			let marker = this.markers.get(mmsi)
+			let pin = marker?.pin
 			if (!marker) {
 				marker = new gm.Marker3DInteractiveElement({
-					position,
 					altitudeMode: 'CLAMP_TO_GROUND'
 				})
-				const pin = marker.pin = new gm.PinElement({
-					background: color,
-					borderColor: '#222',
-					glyphColor: '#222',
-				})
-				pin.style.opacity = opacity
-				marker.style.opacity = opacity
+				pin = marker.pin = new gm.PinElement()
 				marker.append(pin)
 				marker.ship = ship
 				marker.addEventListener('gmp-click', this.onmarkerClick)
 				this.markers.set(mmsi, marker)
 				this.map.append(marker)
-			} else {
-				marker.position = position
-				marker.ship = ship
-				marker.pin.style.opacity = opacity
-				marker.style.opacity = opacity
-				if (marker.pop?.open) {
-					const meta = renderShipMeta(ship)
-					const info = JSON.stringify(meta, null, 2)
-					marker.pop.innerHTML = `<pre style=font-size:0.8rem>${info}</pre>`
-				}
+			}
+			marker.position = position
+			pin.glyphText = isOld ? '✝' : null
+			pin.glyphColor = `#222222${opacity}`
+			pin.borderColor = `#222222${opacity}`
+			pin.background = `${color}${opacity}`
+			if (marker.pop?.open) {
+				this.renderPopover(pop, ship)
 			}
 		}
 		for (const [mmsi, marker] of this.markers.entries()) {
@@ -160,6 +151,12 @@ class Home extends HTMLElement {
 				marker.remove()
 			}
 		}
+	}
+
+	renderPopover (pop, ship) {
+		const meta = renderShipMeta(ship)
+		const info = JSON.stringify(meta, null, 2)
+		pop.innerHTML = `<pre style=font-size:0.8rem>${info}</pre>`
 	}
 
 	render = async () => {
