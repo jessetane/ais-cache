@@ -27,11 +27,39 @@ import {
 	STATION_TYPE,
 } from './strings.js'
 
+const internalFields = [
+	'bitarray',
+	'payload',
+	'valid',
+	'error',
+	'msglen',
+	'channel',
+	'repeat',
+	'immsi',
+	'mmsikey',
+	'part',
+	'utc',
+	'smi',
+	'dac',
+	'fid',
+	'siteid',
+	'reporttype',
+	'utcday',
+	'utchour',
+	'utcminute'
+]
+
 var DEBUG = false;
 
 // Ais payload is represented in a 6bits encoded string !(
 // This method is a direct transcription in nodejs of C++ ais-decoder code
 function AisDecoder (input, session) {
+	for (let i = 0; i < internalFields.length; i++) {
+		Object.defineProperty(this, internalFields[i], {
+			enumerable: false,
+			writable: true
+		})
+	}
 	this.bitarray = [];
 	this.valid = false; // will move to 'true' if parsing succeed
 	this.error = "";	// for returning error message if not valid
@@ -973,5 +1001,7 @@ AisDecoder.prototype.GetERIShiptype = function( shiptypeERI ) {
 	}
 	return shiptypeERI;
 };
+
+AisDecoder.internalFields = internalFields
 
 export default AisDecoder

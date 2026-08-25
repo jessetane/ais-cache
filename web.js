@@ -180,8 +180,6 @@ function updateShip (m) {
 		// console.error('updateShip: invalid ship:', ship, m)
 		return
 	}
-	delete ship.bitarray
-	delete ship.payload
 	const now = Date.now()
 	const mmsi = ship.mmsi
 	let currentShip = ships.get(mmsi)
@@ -204,6 +202,9 @@ async function loadState () {
 		const raw = await fs.readFile(stateFile, 'utf8')
 		const data = JSON.parse(raw)
 		for (const ship of data) {
+			for (let field of AisDecoder.internalFields) {
+				delete ship[field]
+			}
 			const messages = ship.messages || {}
 			delete ship.messages
 			Object.defineProperty(ship, 'messages', {
