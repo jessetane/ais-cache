@@ -31,7 +31,6 @@ const internalFields = [
 	'bitarray',
 	'payload',
 	'valid',
-	'error',
 	'msglen',
 	'channel',
 	'repeat',
@@ -64,36 +63,30 @@ function AisDecoder (input, session = defaultSession) {
 	}
 	this.bitarray = [];
 	this.valid = false; // will move to 'true' if parsing succeed
-	this.error = "";	// for returning error message if not valid
 
-	if (Object.prototype.toString.call(input) !== "[object String]") {
-		this.error = "AisDecoder: Sentence is not of type string.";
-		return;
+	if (typeof input !== 'string') {
+		throw new Error('AisDecoder: Sentence is not of type string.');
 	} else {
 		input = input.trim();
 	}
 
 	if (input.length === 0) {
-		this.error = "AisDecoder: Sentence is empty or spaces.";
-		return;
+		throw new Error('AisDecoder: Sentence is empty or spaces.');
 	} else if (!this.validateChecksum(input)) {
-		this.error = "AisDecoder: Sentence checksum is invalid.";
-		return;
+		throw new Error('AisDecoder: Sentence checksum is invalid.');
 	}
 
 	// split nmea message !AIVDM,1,1,,B,B69>7mh0?J<:>05B0`0e;wq2PHI8,0*3D'
 	var nmea = input.split(",");
 
 	if (nmea.length !== 7) {
-		this.error = "AisDecoder: Sentence contains invalid number of parts.";
-		return;
+		throw new Error('AisDecoder: Sentence contains invalid number of parts.');
 	}
 	var command = nmea[0].substring(3,6);
 	if (command !== "VDM" &&  // AIVDM: others
 		command !== "VDO"	 // AIVDO: own AIS
 		) {
-		this.error = "AisDecoder: Invalid message prefix.";
-		return;
+		throw new Error('AisDecoder: Invalid message prefix.');
 	}
 
 	// the input string is part of a multipart message, make sure we were
@@ -105,7 +98,7 @@ function AisDecoder (input, session = defaultSession) {
 
 	if(message_count > 1) {
 		if(Object.prototype.toString.call(session) !== "[object Object]") {
-		   throw "A session object is required to maintain state for decoding multipart AIS messages.";
+		   throw new Error('A session object is required to maintain state for decoding multipart AIS messages.');
 		}
 
 		// Clean up any stale sessions (> 10 seconds old)
@@ -122,18 +115,15 @@ function AisDecoder (input, session = defaultSession) {
 
 		if(message_id > 1) {
 			if(!subSession) {
-				this.error = "AisDecoder: Session is missing prior message part, cannot parse partial AIS message.";
-				return;
+				throw new Error('AisDecoder: Session is missing prior message part, cannot parse partial AIS message.');
 			}
 
 			if(nmea[0] !== subSession.formatter) {
-				this.error = "AisDecoder: Sentence does not match formatter of current session.";
-				return;
+				throw new Error('AisDecoder: Sentence does not match formatter of current session.');
 			}
 
 			if(subSession[message_id - 1] === undefined) {
-				this.error = "AisDecoder: Session is missing prior message part, cannot parse partial AIS message.";
-				return;
+				throw new Error('AisDecoder: Session is missing prior message part, cannot parse partial AIS message.');
 			}
 		} else {
 			subSession = session[session_key] = {
@@ -183,8 +173,9 @@ function AisDecoder (input, session = defaultSession) {
 		var byte = this.payload[i];
 
 		// check byte is not out of range
-		if ((byte < 0x30) || (byte > 0x77))  return;
-		if ((0x57 < byte) && (byte < 0x60))  return;
+		if ((byte < 0x30) || (byte > 0x77) || ((0x57 < byte) && (byte < 0x60))) {
+			throw new Error('AisDecoder: Payload byte out of valid 6-bit range.');
+		}
 
 		// move from printable char to wacky AIS/IEC 6 bit representation
 		byte += 0x28;
