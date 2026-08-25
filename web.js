@@ -43,7 +43,8 @@ setInterval(saveState, stateSaveRate)
 
 async function openSerialPort () {
 	try {
-		await exec(`stty -F ${serialPort} raw -echo ispeed ${serialPortBaudRate}`)
+		const flag = process.platform === 'darwin' || process.platform.includes('bsd') ? '-f' : '-F'
+		await exec(`stty ${flag} ${serialPort} raw -echo ispeed ${serialPortBaudRate}`)
 	} catch (err) {
 		console.error(`ais.serial: failed to open ${serialPort}:`, err)
 		setTimeout(openSerialPort, serialPortReopenInterval)
