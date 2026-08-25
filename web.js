@@ -158,8 +158,8 @@ function renderShipStatus () {
 		const elapsed = now - ship.updated
 		const maxAge = aisTTL[ship.stationType]?.maxAge || 1
 		if (elapsed >= maxAge) {
+			// console.log(`ship dead: ${mmsi}`)
 			ships.delete(mmsi)
-			console.log(`ship dead: ${mmsi}`)
 		}
 	}
 }
