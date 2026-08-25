@@ -142,7 +142,7 @@ class Home extends HTMLElement {
 			pin.borderColor = `#222222${opacity}`
 			pin.background = `${color}${opacity}`
 			if (marker.pop?.open) {
-				this.renderPopover(pop, ship)
+				this.renderPopover(marker.pop, ship)
 			}
 		}
 		for (const [mmsi, marker] of this.markers.entries()) {
