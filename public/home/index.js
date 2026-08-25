@@ -155,7 +155,7 @@ class Home extends HTMLElement {
 				this.map.append(marker)
 			}
 			marker.position = position
-			pin.glyphText = isOld ? '✝' : null
+			pin.glyphText = isOld ? '✕' : null
 			pin.glyphColor = `#222222${opacity}`
 			pin.borderColor = `#222222${opacity}`
 			pin.background = `${color}${opacity}`
