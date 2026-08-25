@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import fs from 'fs/promises'
+import { createReadStream } from 'fs'
 import tcp from 'net'
 import { exec as execCb } from 'child_process'
 import { promisify } from 'util'
@@ -28,23 +28,25 @@ setInterval(renderStats, statsInterval)
 async function openSerialPort () {
 	try {
 		await exec(`stty -F ${serialPort} raw -echo ispeed ${serialPortBaudRate}`)
-		const fd = await fs.open(serialPort)
-		const s = fd.createReadStream(fd)
-		buffer = ''
-		s.on('data', data => {
-			// console.log(`got new data: ${data.length}`, data.toString())
-			buffer += data.toString()
-			requestRender()
-		})
-		fd.on('close', () => {
-			console.error(`${serialPort} closed unexpectedly, retrying in ${serialPortReopenInterval}`)
-			setTimeout(openSerialPort, serialPortReopenInterval)
-		})
 	} catch (err) {
-		console.error(err)
-		console.error(`failed to open ${serialPort}, retrying in ${serialPortReopenInterval}`)
+		console.error(`failed to open ${serialPort}, retrying in ${serialPortReopenInterval}:`, err)
 		setTimeout(openSerialPort, serialPortReopenInterval)
+		return
 	}
+	const s = createReadStream(serialPort)
+	buffer = ''
+	s.on('data', data => {
+		// console.log(`got new data: ${data.length}`, data.toString())
+		buffer += data.toString()
+		requestRender()
+	})
+	s.on('error', err => {
+		console.error(`${serialPort} error:`, err)
+	})
+	s.on('close', () => {
+		console.error(`${serialPort} closed unexpectedly, retrying in ${serialPortReopenInterval}`)
+		setTimeout(openSerialPort, serialPortReopenInterval)
+	})
 }
 
 function openTcpServer () {

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import fs from 'fs/promises'
+import { createReadStream } from 'fs'
 import tcp from 'net'
 import { exec as execCb } from 'child_process'
 import { promisify } from 'util'
@@ -48,36 +49,35 @@ async function openSerialPort () {
 		setTimeout(openSerialPort, serialPortReopenInterval)
 		return
 	}
-	const fd = await fs.open(serialPort)
-	const stream = fd.createReadStream()
+	const s = createReadStream(serialPort)
 	const source = { buffer: '', session: {} }
-	console.log(`ais.serial: opened ${serialPort} at ${serialPortBaudRate} baud`)
-	stream.on('data', d => {
+	console.log(`ais.serial.open: ${serialPort} at ${serialPortBaudRate} baud`)
+	s.on('data', d => {
 		handleStreamChunk(source, d)
 	})
-	stream.on('error', err => {
-		console.error(`ais.serial.error on ${serialPort}:`, err)
+	s.on('error', err => {
+		console.error(`ais.serial.error: ${serialPort}:`, err)
 	})
-	fd.on('close', () => {
-		console.error(`ais.serial: ${serialPort} closed unexpectedly, retrying in ${serialPortReopenInterval}`)
+	s.on('close', () => {
+		console.error(`ais.serial.close: ${serialPort} closed unexpectedly, retrying in ${serialPortReopenInterval}`)
 		setTimeout(openSerialPort, serialPortReopenInterval)
 	})
 }
 
 function openAisSocket () {
-	const socket = tcp.connect(aisPort, aisHost)
+	const s = tcp.connect(aisPort, aisHost)
 	const source = { buffer: '', session: {} }
-	socket.on('connect', () => {
+	s.on('connect', () => {
 		console.log(`ais.tcp.connect: connected to ${aisHost}:${aisPort}`)
 	})
-	socket.on('data', d => {
+	s.on('data', d => {
 		// console.log(`got ${d.length} bytes`, d.toString())
 		handleStreamChunk(source, d)
 	})
-	socket.on('error', err => {
+	s.on('error', err => {
 		console.error('ais.tcp.error:', err)
 	})
-	socket.on('close', () => {
+	s.on('close', () => {
 		console.error(`ais.tcp.close: retrying in ${aisReconnectInterval}`)
 		setTimeout(openAisSocket, aisReconnectInterval)
 	})
