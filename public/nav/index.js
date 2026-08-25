@@ -5,6 +5,7 @@ class Nav extends HTMLElement {
 	connectedCallback () {
 		state.addEventListener('change', this.render)
 		this.innerHTML = `<h1 id=title><a href=/>AIS Map</a></h1>`
+		this.style.display = 'none'
 		this.render()
 	}
 
