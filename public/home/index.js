@@ -9,14 +9,24 @@ import {
 	VESSEL_TYPE,
 } from '../ais/strings.js'
 
+const colors = {
+	red: '#dc2626',
+	yellow: '#ca8a04',
+	blue: '#2563eb',
+	orange: '#ea580c',
+	green: '#16a34a',
+	purple: '#9333ea',
+	pink: '#db2777',
+}
+
 const STATION_COLOR = {
-	1: '#2563eb', // Vessel (Blue)
-	2: '#ca8a04', // Base Station (Green)
-	3: '#ea580c', // SAR Aircraft (Orange)
-	4: '#16a34a', // Aid-to-Navigation (Yellow)
-	5: '#dc2626', // AIS-SART (Red)
-	6: '#9333ea', // AIS-MOB (Purple)
-	7: '#db2777', // EPIRB (Pink)
+	1: colors.blue,		// Vessel
+	2: colors.purple,	// Base Station
+	3: colors.orange,	// SAR Aircraft
+	4: colors.red,		// Aid-to-Navigation
+	5: colors.pink,		// AIS-SART
+	6: colors.pink,		// AIS-MOB
+	7: colors.pink,		// EPIRB
 }
 
 const STATIONARY_NAV_STATUS = new Set([
