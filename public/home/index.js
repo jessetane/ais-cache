@@ -29,12 +29,6 @@ const STATION_COLOR = {
 	7: colors.pink,		// EPIRB
 }
 
-const STATIONARY_NAV_STATUS = new Set([
-	1, // At anchor
-	5, // Moored
-	6, // Aground
-])
-
 function renderShipMeta (ship) {
 	const meta = {
 		mmsi: ship.mmsi,
@@ -129,10 +123,10 @@ class Home extends HTMLElement {
 			const title = mmsi
 			const position = { lat: ship.lat, lng: ship.lon, altitude: 0 }
 			const elapsed = now - ship.updated
+			const isVessel = ship.stationType === 1
 			const isOld = elapsed >= (aisTTL[ship.stationType]?.oldAge ?? Infinity)
-			const isMoving = ship.stationType !== 1 || ship.sog !== undefined && ship.sog > 0.3
-			const isStationary = STATIONARY_NAV_STATUS.has(ship.navstatus) || !isMoving
-			const opacity = isOld || isStationary ? '80' : 'ff'
+			const isMoving = ship.sog !== undefined && ship.sog > 0.3
+			const opacity = isOld || (isVessel && !isMoving) ? '80' : 'ff'
 			let color = STATION_COLOR[ship.stationType]
 			if (ship.stationType == 4) {
 				if (ship.aidtype === 24) color = colors.green
