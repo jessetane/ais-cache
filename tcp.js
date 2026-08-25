@@ -1,4 +1,4 @@
-#!/bin/env node
+#!/usr/bin/env node
 
 import fs from 'fs/promises'
 import tcp from 'net'
