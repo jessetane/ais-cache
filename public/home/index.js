@@ -23,6 +23,7 @@ function renderShipMeta (ship) {
 	const meta = {
 		// messageType: MSG_TYPE[ship.aistype],
 		mmsi: ship.mmsi,
+		class: ship.class || undefined,
 		name: ship.shipname,
 		stationType: STATION_TYPE[ship.stationType],
 		vesselType: VESSEL_TYPE[ship.cargo],

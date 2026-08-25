@@ -297,7 +297,7 @@ function AisDecode (input, session) {
 			}
 			break;
 		case 4:  // base station
-			this.class	  = '-';
+			// this.class	  = '-';
 		case 11: // UTC/Date Response
 			var lon = this.GetInt(79, 28);
 			if (lon & 0x08000000 ) lon |= 0xf0000000;
@@ -314,7 +314,7 @@ function AisDecode (input, session) {
 			} else this.valid = false;
 			break;
 		case 9: // sar aircraft
-			this.class	  = '-';
+			// this.class	  = '-';
 
 			this.alt = this.GetInt(38, 12);
 
@@ -337,7 +337,7 @@ function AisDecode (input, session) {
 
 			break;
 		case 21: // aid to navigation
-			this.class	  = '-';
+			// this.class	  = '-';
 
 			this.aidtype = this.GetInt(38, 5);
 			this.shipname = this.GetStr(43, 120).trim();
