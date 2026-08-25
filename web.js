@@ -188,7 +188,7 @@ function updateShip (m) {
 	}
 	Object.assign(currentShip, ship)
 	currentShip.updated = now
-	currentShip.messages[m.aistype] = m
+	currentShip.messages[ship.aistype] = m
 	return currentShip
 }
 
