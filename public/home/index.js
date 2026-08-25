@@ -11,9 +11,9 @@ import {
 
 const STATION_COLOR = {
 	1: '#2563eb', // Vessel (Blue)
-	2: '#16a34a', // Base Station (Green)
+	2: '#ca8a04', // Base Station (Green)
 	3: '#ea580c', // SAR Aircraft (Orange)
-	4: '#ca8a04', // Aid-to-Navigation (Yellow)
+	4: '#16a34a', // Aid-to-Navigation (Yellow)
 	5: '#dc2626', // AIS-SART (Red)
 	6: '#9333ea', // AIS-MOB (Purple)
 	7: '#db2777', // EPIRB (Pink)

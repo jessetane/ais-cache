@@ -19,8 +19,10 @@ state.log = document.querySelector('x-log')
 
 // watch ais feed
 const ships = state.ships = {}
+const aisHost = url.params.aisHost || '[::1]'
+const aisPort = url.params.aisPort || 9002
 const ws = new WebSocketPersistent({
-	url: 'ws://[::1]:9002'
+	url: `ws://${aisHost}:${aisPort}`
 })
 ws.addEventListener('message', m => {
 	m.data.forEach(s => {
