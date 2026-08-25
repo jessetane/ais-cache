@@ -7,6 +7,7 @@ import {
 	NAV_STATUS,
 	STATION_TYPE,
 	VESSEL_TYPE,
+	ATON_TYPE,
 } from '../ais/strings.js'
 
 const colors = {
@@ -43,6 +44,7 @@ function renderShipMeta (ship) {
 		name: ship.shipname,
 		stationType: STATION_TYPE[ship.stationType],
 		vesselType: VESSEL_TYPE[ship.cargo],
+		aidType: ATON_TYPE[ship.aidtype],
 		status: NAV_STATUS[ship.navstatus],
 		destination: ship.destination || undefined,
 		length: ship.length || undefined,
@@ -127,12 +129,17 @@ class Home extends HTMLElement {
 			activeShips.add(mmsi)
 			const title = mmsi
 			const position = { lat: ship.lat, lng: ship.lon, altitude: 0 }
-			const color = STATION_COLOR[ship.stationType]
 			const elapsed = now - ship.updated
 			const isOld = elapsed >= (aisTTL[ship.stationType]?.oldAge ?? Infinity)
 			const isMoving = ship.stationType !== 1 || ship.sog !== undefined && ship.sog > 0.3
 			const isStationary = STATIONARY_NAV_STATUS.has(ship.navstatus) || !isMoving
 			const opacity = isOld || isStationary ? '80' : 'ff'
+			let color = STATION_COLOR[ship.stationType]
+			if (ship.stationType == 4) {
+				if (ship.aidtype === 24) color = colors.green
+				else if (ship.aidtype === 25) color = colors.red
+				else color = colors.yellow
+			}
 			let marker = this.markers.get(mmsi)
 			let pin = marker?.pin
 			if (!marker) {
