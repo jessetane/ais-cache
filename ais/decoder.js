@@ -31,23 +31,23 @@ var DEBUG = false;
 
 // Ais payload is represented in a 6bits encoded string !(
 // This method is a direct transcription in nodejs of C++ ais-decoder code
-function AisDecode (input, session) {
+function AisDecoder (input, session) {
 	this.bitarray = [];
 	this.valid = false; // will move to 'true' if parsing succeed
 	this.error = "";	// for returning error message if not valid
 
 	if (Object.prototype.toString.call(input) !== "[object String]") {
-		this.error = "AisDecode: Sentence is not of type string.";
+		this.error = "AisDecoder: Sentence is not of type string.";
 		return;
 	} else {
 		input = input.trim();
 	}
 
 	if (input.length === 0) {
-		this.error = "AisDecode: Sentence is empty or spaces.";
+		this.error = "AisDecoder: Sentence is empty or spaces.";
 		return;
 	} else if (!this.validateChecksum(input)) {
-		this.error = "AisDecode: Sentence checksum is invalid.";
+		this.error = "AisDecoder: Sentence checksum is invalid.";
 		return;
 	}
 
@@ -55,14 +55,14 @@ function AisDecode (input, session) {
 	var nmea = input.split(",");
 
 	if (nmea.length !== 7) {
-		this.error = "AisDecode: Sentence contains invalid number of parts.";
+		this.error = "AisDecoder: Sentence contains invalid number of parts.";
 		return;
 	}
 	var command = nmea[0].substring(3,6);
 	if (command !== "VDM" &&  // AIVDM: others
 		command !== "VDO"	 // AIVDO: own AIS
 		) {
-		this.error = "AisDecode: Invalid message prefix.";
+		this.error = "AisDecoder: Invalid message prefix.";
 		return;
 	}
 
@@ -79,17 +79,17 @@ function AisDecode (input, session) {
 
 		if(message_id > 1) {
 			if(nmea[0] !== session.formatter) {
-				this.error = "AisDecode: Sentence does not match formatter of current session.";
+				this.error = "AisDecoder: Sentence does not match formatter of current session.";
 				return;
 			}
 
 			if(session[message_id - 1] === undefined) {
-				this.error = "AisDecode: Session is missing prior message part, cannot parse partial AIS message.";
+				this.error = "AisDecoder: Session is missing prior message part, cannot parse partial AIS message.";
 				return;
 			}
 
 			if(session.sequence_id !== sequence_id) {
-				this.error = "AisDecode: Session IDs do not match. Cannot recontruct AIS message.";
+				this.error = "AisDecoder: Session IDs do not match. Cannot recontruct AIS message.";
 				return;
 			}
 		} else {
@@ -785,7 +785,7 @@ function AisDecode (input, session) {
 }
 
 // Validate message checksum
-AisDecode.prototype.validateChecksum = function(input) {
+AisDecoder.prototype.validateChecksum = function(input) {
 	if (typeof input === "string") {
 		var loc1 = input.indexOf("!");
 		var loc2 = input.indexOf("*");
@@ -807,7 +807,7 @@ AisDecode.prototype.validateChecksum = function(input) {
 };
 
 // Extract an integer sign or unsigned from payload
-AisDecode.prototype.GetInt= function (start, len, signed) {
+AisDecoder.prototype.GetInt= function (start, len, signed) {
 	var acc = 0;
 	var cp, cx,c0, cs;
 
@@ -832,11 +832,11 @@ AisDecode.prototype.GetInt= function (start, len, signed) {
 };
 
 // Extract a string from payload [1st bits is index 0]
-AisDecode.prototype.GetStr= function(start, len) {
+AisDecoder.prototype.GetStr= function(start, len) {
 
 	// extended message are not supported
 	if (this.bitarray.length < (start + len) /6) {
-		//console.log ("AisDecode: ext msg not implemented GetStr(%d,%d)", start, len);
+		//console.log ("AisDecoder: ext msg not implemented GetStr(%d,%d)", start, len);
 		len = parseInt(( ( this.bitarray.length - start/6 ) / 6 ) * 6)*6;
 	}
 	// messages in the wild sometimes produce a negative len which will cause a buffer range error
@@ -873,24 +873,24 @@ AisDecode.prototype.GetStr= function(start, len) {
 	return (buffer.toString ('utf8',0, k));
 };
 
-AisDecode.prototype.GetNavStatus = function () {
+AisDecoder.prototype.GetNavStatus = function () {
 	return (NAV_STATUS[this.navstatus]);
 };
 
-AisDecode.prototype.Getaistype = function () {
+AisDecoder.prototype.Getaistype = function () {
 	return (MSG_TYPE[this.aistype]);
 };
 
-AisDecode.prototype.GetVesselType = function () {
+AisDecoder.prototype.GetVesselType = function () {
 	return (VESSEL_TYPE[this.cargo]);
 };
 
-AisDecode.prototype.GetStationType = function () {
+AisDecoder.prototype.GetStationType = function () {
 	return (STATION_TYPE[this.stationType]);
 };
 
 // map ERI Classification to other vessel types
-AisDecode.prototype.GetERIShiptype = function( shiptypeERI ) {
+AisDecoder.prototype.GetERIShiptype = function( shiptypeERI ) {
 	switch (shiptypeERI) {
 		case 8000: return 99; // Vessel, type unknown
 		case 8010: return 79; // Motor freighter
@@ -974,4 +974,4 @@ AisDecode.prototype.GetERIShiptype = function( shiptypeERI ) {
 	return shiptypeERI;
 };
 
-export default AisDecode
+export default AisDecoder
