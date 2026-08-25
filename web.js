@@ -76,8 +76,7 @@ function openTcpServer () {
 		const messages = []
 		for (const [mmsi, ship] of ships.entries()) {
 			for (let t in ship.messages) {
-				const m = ship.messages[t]
-				messages.push(m)
+				messages.push(...ship.messages[t])
 			}
 		}
 		if (messages.length) {
@@ -164,6 +163,20 @@ function renderShipStatus () {
 	}
 }
 
+function getOrCreateShip (mmsi) {
+	let ship = ships.get(mmsi)
+	if (!ship) {
+		ship = { mmsi, created: Date.now() }
+		Object.defineProperty(ship, 'messages', {
+			value: {},
+			enumerable: false,
+			writable: true
+		})
+		ships.set(mmsi, ship)
+	}
+	return ship
+}
+
 function updateShip (m) {
 	let ship
 	try {
@@ -172,28 +185,11 @@ function updateShip (m) {
 		// console.error('updateShip: bad message', err, ship, m)
 		return
 	}
-	if (!ship || !ship.mmsi) {
-		// console.error('updateShip: missing mmsid:', ship, m)
-		return
-	}
-	if (!ship.valid) {
-		// console.error('updateShip: invalid ship:', ship, m)
-		return
-	}
-	const now = Date.now()
-	const mmsi = ship.mmsi
-	let currentShip = ships.get(mmsi)
-	if (!currentShip) {
-		currentShip = { mmsi, created: now }
-		ships.set(mmsi, currentShip)
-		Object.defineProperty(currentShip, 'messages', {
-			value: {},
-			enumerable: false
-		})
-	}
+	if (!ship?.valid || !ship.mmsi) return
+	const currentShip = getOrCreateShip(ship.mmsi)
 	Object.assign(currentShip, ship)
-	currentShip.updated = now
-	currentShip.messages[ship.aistype] = m
+	Object.assign(currentShip.messages, ship.messages)
+	currentShip.updated = Date.now()
 	return currentShip
 }
 
@@ -201,17 +197,17 @@ async function loadState () {
 	try {
 		const raw = await fs.readFile(stateFile, 'utf8')
 		const data = JSON.parse(raw)
-		for (const ship of data) {
-			for (let field of AisDecoder.internalFields) {
-				delete ship[field]
+		for (const item of data) {
+			const ship = getOrCreateShip(item.mmsi)
+			const messages = item.messages || {}
+			for (let t in messages) {
+				if (!Array.isArray(messages[t])) {
+					messages[t] = [messages[t]]
+				}
 			}
-			const messages = ship.messages || {}
-			delete ship.messages
-			Object.defineProperty(ship, 'messages', {
-				value: messages,
-				enumerable: false
-			})
-			ships.set(ship.mmsi, ship)
+			delete item.messages
+			Object.assign(ship, item)
+			Object.assign(ship.messages, messages)
 		}
 		console.log(`loaded ${ships.size} ships from ${stateFile}`)
 	} catch (err) {

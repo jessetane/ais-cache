@@ -46,14 +46,16 @@ const internalFields = [
 	'reporttype',
 	'utcday',
 	'utchour',
-	'utcminute'
+	'utcminute',
+	'messages'
 ]
 
 var DEBUG = false;
+const defaultSession = {};
 
 // Ais payload is represented in a 6bits encoded string !(
 // This method is a direct transcription in nodejs of C++ ais-decoder code
-function AisDecoder (input, session) {
+function AisDecoder (input, session = defaultSession) {
 	for (let i = 0; i < internalFields.length; i++) {
 		Object.defineProperty(this, internalFields[i], {
 			enumerable: false,
@@ -98,43 +100,63 @@ function AisDecoder (input, session) {
 	// passed a session object.
 	var message_count = Number(nmea[1]);
 	var message_id = Number(nmea[2]);
-	var sequence_id = nmea[3].length > 0 ? Number(nmea[3]) : NaN;
+	var sequence_id = nmea[3] || '';
+	var channel = nmea[4] || '';
 
 	if(message_count > 1) {
 		if(Object.prototype.toString.call(session) !== "[object Object]") {
 		   throw "A session object is required to maintain state for decoding multipart AIS messages.";
 		}
 
-		if(message_id > 1) {
-			if(nmea[0] !== session.formatter) {
-				this.error = "AisDecoder: Sentence does not match formatter of current session.";
-				return;
+		// Clean up any stale sessions (> 10 seconds old)
+		var now = Date.now();
+		for (var k in session) {
+			if (session[k] && session[k].timestamp && (now - session[k].timestamp > 10000)) {
+				delete session[k];
 			}
+		}
 
-			if(session[message_id - 1] === undefined) {
+		// Key sessions by channel and sequence ID to isolate interleaved streams
+		var session_key = channel + ':' + sequence_id;
+		var subSession = session[session_key];
+
+		if(message_id > 1) {
+			if(!subSession) {
 				this.error = "AisDecoder: Session is missing prior message part, cannot parse partial AIS message.";
 				return;
 			}
 
-			if(session.sequence_id !== sequence_id) {
-				this.error = "AisDecoder: Session IDs do not match. Cannot recontruct AIS message.";
+			if(nmea[0] !== subSession.formatter) {
+				this.error = "AisDecoder: Sentence does not match formatter of current session.";
+				return;
+			}
+
+			if(subSession[message_id - 1] === undefined) {
+				this.error = "AisDecoder: Session is missing prior message part, cannot parse partial AIS message.";
 				return;
 			}
 		} else {
-			session.formatter = nmea[0];
-			session.message_count = message_count;
-			session.sequence_id = sequence_id;
+			subSession = session[session_key] = {
+				formatter: nmea[0],
+				message_count: message_count,
+				sequence_id: sequence_id,
+				messages: [],
+				timestamp: now
+			};
 		}
+		subSession.timestamp = now;
+		subSession.messages.push(input);
 	}
 
 	// extract binary payload and other usefull information from nmea paquet
 	this.payload  = Buffer.from(nmea [5]);
 	this.msglen   = this.payload.length;
 
-	this.channel = nmea[4];  // vhf channel A/B
+	this.channel = channel;
 
+	var messages = [input];
 	if(message_count > 1) {
-		session[message_id] = {payload: this.payload, length: this.msglen};
+		subSession[message_id] = {payload: this.payload, length: this.msglen};
 
 		// Not done building the session
 		if(message_id < message_count) return;
@@ -142,13 +164,17 @@ function AisDecoder (input, session) {
 		var payloads = [];
 		var len = 0;
 
-		for(var i = 1; i <= session.message_count; ++i) {
-			payloads.push(session[i].payload);
-			len += session[i].length;
+		for(var i = 1; i <= subSession.message_count; ++i) {
+			payloads.push(subSession[i].payload);
+			len += subSession[i].length;
 		}
 
 		this.payload = Buffer.concat(payloads, len);
 		this.msglen = this.payload.length;
+		messages = subSession.messages;
+
+		// Clean up completed session
+		delete session[session_key];
 	}
 
 
@@ -168,6 +194,7 @@ function AisDecoder (input, session) {
 	}
 
 	this.aistype   = this.GetInt (0,6);
+	this.messages  = { [this.aistype]: messages };
 	this.repeat	= this.GetInt (6,2);
 	this.immsi	 = this.GetInt (8,30);
 	this.mmsi	  = ("000000000" + this.immsi).slice(-9);
