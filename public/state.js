@@ -41,7 +41,6 @@ ws.addEventListener('message', m => {
 	for (let ship of Object.values(ships)) {
 		const maxAge = aisTTL[ship.stationType]?.maxAge || 1
 		if (now - ship.updated >= maxAge) {
-			console.log('removing stale ship:', ship.mmsi)
 			delete ships[ship.mmsi]
 		}
 	}

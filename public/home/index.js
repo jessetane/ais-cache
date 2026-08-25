@@ -69,9 +69,9 @@ class Home extends HTMLElement {
 		this.renderInterval = setInterval(this.renderShips, 2500)
 		this.innerHTML = `<gmp-map-3d mode=satellite></gmp-map-3d>`
 		const map = this.map = this.querySelector('gmp-map-3d')
-		map.tilt = 70
-		map.range = 2000
-		map.center = { lat: 40.69108013790377, lng: -74.01033815269783, altitude: 150 }
+		map.tilt = 67
+		map.range = 7015
+		map.center = { lat: 40.70875498274823, lng: -74.0064538380301, altitude: 105 }
 		map.addEventListener('gmp-click', this.onmapClick)
 	}
 
