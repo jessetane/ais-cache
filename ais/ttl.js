@@ -1,9 +1,32 @@
+const factor = 3
+
 export default {
-	1: 1000 * 60 * 10, // Vessel: 18 mins
-	2: 1000 * 60 * 5,  // Base Station: 3 mins
-	3: 1000 * 60 * 1,  // SAR Aircraft: 1 min
-	4: 1000 * 60 * 60, // Aid-to-Navigation: 18 mins
-	5: 1000 * 60 * 60, // AIS-SART: 10 mins
-	6: 1000 * 60 * 60, // AIS-MOB: 10 mins
-	7: 1000 * 60 * 60, // EPIRB: 10 mins
+	1: { // Vessel (3m nominal)
+		oldAge: 1000 * 60 * 3 * factor,
+		maxAge: 1000 * 60 * 20,
+	},
+	2: { // Base Station (10s nominal)
+		oldAge: 1000 * 10 * factor,
+		maxAge: 1000 * 60 * 20,
+	},
+	3: { // SAR Aircraft (10s nominal)
+		oldAge: 1000 * 10 * factor,
+		maxAge: 1000 * 60 * 5,
+	},
+	4: { // Aid-to-Navigation (3m nominal)
+		oldAge: 1000 * 60 * 3 * factor,
+		maxAge: 1000 * 60 * 60 * 24,
+	},
+	5: { // AIS-SART (1m nominal)
+		oldAge: 1000 * 60 * factor,
+		maxAge: 1000 * 60 * 60 * 24,
+	},
+	6: { // AIS-MOB (1m nominal)
+		oldAge: 1000 * 60 * factor,
+		maxAge: 1000 * 60 * 60 * 24,
+	},
+	7: { // EPIRB (1m nominal)
+		oldAge: 1000 * 60 * factor,
+		maxAge: 1000 * 60 * 60 * 24,
+	},
 }

@@ -149,7 +149,8 @@ function renderShipStatus () {
 	const now = new Date()
 	for (const [mmsi, ship] of ships.entries()) {
 		const elapsed = now - ship.updated
-		if (elapsed >= aisTTL[ship.stationType]) {
+		const maxAge = aisTTL[ship.stationType]?.maxAge || 1
+		if (elapsed >= maxAge) {
 			ships.delete(mmsi)
 			console.log(`ship dead: ${mmsi}`)
 		}

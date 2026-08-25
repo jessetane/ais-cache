@@ -1,6 +1,7 @@
 import state from '../state.js'
 import hb from 'hyperbind'
 import * as gm from '../gmaps.js'
+import aisTTL from '../ais/ttl.js'
 import {
 	MSG_TYPE,
 	NAV_STATUS,
@@ -47,6 +48,7 @@ class Home extends HTMLElement {
 	connectedCallback () {
 		state.addEventListener('change', this.render)
 		state.addEventListener('change.ships', this.renderShips)
+		this.renderInterval = setInterval(this.renderShips, 2500)
 		this.innerHTML = `<gmp-map-3d mode=satellite></gmp-map-3d>`
 		const map = this.map = this.querySelector('gmp-map-3d')
 		map.tilt = 70
@@ -58,6 +60,7 @@ class Home extends HTMLElement {
 	disconnectedCallback () {
 		state.removeEventListener('change', this.render)
 		state.removeEventListener('change.ships', this.renderShips)
+		clearInterval(this.renderInterval)
 	}
 
 	onmarkerClick = evt => {
@@ -100,6 +103,7 @@ class Home extends HTMLElement {
 	}
 
 	renderShips = () => {
+		const now = Date.now()
 		const activeShips = new Set()
 		for (const ship of Object.values(state.ships)) {
 			if (!ship.lat || !ship.lon) {
@@ -110,6 +114,9 @@ class Home extends HTMLElement {
 			const title = mmsi
 			const position = { lat: ship.lat, lng: ship.lon, altitude: 0 }
 			const color = STATION_COLOR[ship.stationType]
+			const elapsed = now - ship.updated
+			const isOld = elapsed >= (aisTTL[ship.stationType]?.oldAge ?? Infinity)
+			const opacity = isOld ? '0.5' : '1'
 			let marker = this.markers.get(mmsi)
 			if (!marker) {
 				marker = new gm.Marker3DInteractiveElement({
@@ -121,6 +128,8 @@ class Home extends HTMLElement {
 					borderColor: '#222',
 					glyphColor: '#222',
 				})
+				pin.style.opacity = opacity
+				marker.style.opacity = opacity
 				marker.append(pin)
 				marker.ship = ship
 				marker.addEventListener('gmp-click', this.onmarkerClick)
@@ -128,6 +137,9 @@ class Home extends HTMLElement {
 				this.map.append(marker)
 			} else {
 				marker.position = position
+				marker.ship = ship
+				marker.pin.style.opacity = opacity
+				marker.style.opacity = opacity
 				if (marker.pop?.open) {
 					const meta = renderShipMeta(ship)
 					const info = JSON.stringify(meta, null, 2)
