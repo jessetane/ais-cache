@@ -19,6 +19,12 @@ const STATION_COLOR = {
 	7: '#db2777', // EPIRB (Pink)
 }
 
+const STATIONARY_NAV_STATUS = new Set([
+	1, // At anchor
+	5, // Moored
+	6, // Aground
+])
+
 function renderShipMeta (ship) {
 	const meta = {
 		// messageType: MSG_TYPE[ship.aistype],
