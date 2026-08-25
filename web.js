@@ -36,12 +36,19 @@ setInterval(saveState, stateSaveRate)
 
 function openAisSocket () {
 	const socket = tcp.connect(aisPort, aisHost)
+	socket.on('connect', () => {
+		console.log('ais.connect: success')
+	})
 	socket.on('data', d => {
 		// console.log(`got ${d.length} bytes`, d.toString())
 		buffer += d.toString()
 		requestRender()
 	})
+	socket.on('error', err => {
+		console.error('ais.error:', err)
+	})
 	socket.on('close', () => {
+		console.error(`ais.close: retrying in ${aisReconnectInterval}`)
 		setTimeout(openAisSocket, aisReconnectInterval)
 	})
 }
