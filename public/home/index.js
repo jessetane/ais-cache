@@ -52,6 +52,7 @@ function renderShipMeta (ship) {
 		sog: ship.sog,
 		cog: ship.cog,
 		rot: ship.rot,
+		updated: new Date(ship.updated).toLocaleString(),
 	}
 	for (let key in meta) {
 		if (meta[key] === undefined) {
