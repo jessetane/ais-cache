@@ -3,7 +3,6 @@ import hb from 'hyperbind'
 import * as gm from '../gmaps.js'
 import aisTTL from '../ais/ttl.js'
 import {
-	MSG_TYPE,
 	NAV_STATUS,
 	STATION_TYPE,
 	VESSEL_TYPE,
@@ -38,7 +37,6 @@ const STATIONARY_NAV_STATUS = new Set([
 
 function renderShipMeta (ship) {
 	const meta = {
-		// messageType: MSG_TYPE[ship.aistype],
 		mmsi: ship.mmsi,
 		class: ship.class || undefined,
 		name: ship.shipname,
