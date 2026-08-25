@@ -2,6 +2,9 @@
 
 import fs from 'fs/promises'
 import tcp from 'net'
+import { exec as execCb } from 'child_process'
+import { promisify } from 'util'
+const exec = promisify(execCb)
 import AisDecoder from './ais/decoder.js'
 import aisTTL from './ais/ttl.js'
 import { WebSocketServer } from 'ws'
@@ -9,12 +12,14 @@ import { WebSocketServer } from 'ws'
 const env = process.env
 const stateFile = env.STATE_FILE || './state.json'
 const stateSaveRate = parseInt(env.STATE_SAVE_RATE || 30000)
-const aisHost = env.AIS_HOST || '::1'
+const serialPort = env.SERIAL_PORT
+const serialPortBaudRate = env.SERIAL_BAUD_RATE || 115200
+const serialPortReopenInterval = parseInt(env.SERIAL_PORT_RECONNECT || env.AIS_RECONNECT || 5000)
+const aisHost = env.AIS_HOST || (!serialPort ? '::1' : null)
 const aisPort = env.AIS_PORT || 9000
 const aisReconnectInterval = parseInt(env.AIS_RECONNECT || 5000)
-const aisSession = {}
 const tcpHost = env.TCP_HOST || '::'
-const tcpPort = env.TCP_PORT || '9001'
+const tcpPort = env.TCP_PORT || 9001
 const tcpServer = new tcp.Server()
 let tcpConnections = []
 const wsHost = env.WS_HOST || '::'
@@ -25,32 +30,73 @@ const renderRate = 250
 let renderTimeout = null
 const renderShipStatusRate = 2500
 const ships = new Map()
-let buffer = ''
+let buffer = []
 
 await loadState()
-openAisSocket()
+if (serialPort) openSerialPort()
+if (aisHost) openAisSocket()
 openTcpServer()
 openWsServer()
 setInterval(renderShipStatus, renderShipStatusRate)
 setInterval(saveState, stateSaveRate)
 
+async function openSerialPort () {
+	try {
+		await exec(`stty -F ${serialPort} raw -echo ispeed ${serialPortBaudRate}`)
+	} catch (err) {
+		console.error(`ais.serial: failed to open ${serialPort}:`, err)
+		setTimeout(openSerialPort, serialPortReopenInterval)
+		return
+	}
+	const fd = await fs.open(serialPort)
+	const stream = fd.createReadStream()
+	const source = { buffer: '', session: {} }
+	console.log(`ais.serial: opened ${serialPort} at ${serialPortBaudRate} baud`)
+	stream.on('data', d => {
+		handleStreamChunk(source, d)
+	})
+	stream.on('error', err => {
+		console.error(`ais.serial.error on ${serialPort}:`, err)
+	})
+	fd.on('close', () => {
+		console.error(`ais.serial: ${serialPort} closed unexpectedly, retrying in ${serialPortReopenInterval}`)
+		setTimeout(openSerialPort, serialPortReopenInterval)
+	})
+}
+
 function openAisSocket () {
 	const socket = tcp.connect(aisPort, aisHost)
+	const source = { buffer: '', session: {} }
 	socket.on('connect', () => {
-		console.log('ais.connect: success')
+		console.log(`ais.tcp.connect: connected to ${aisHost}:${aisPort}`)
 	})
 	socket.on('data', d => {
 		// console.log(`got ${d.length} bytes`, d.toString())
-		buffer += d.toString()
-		requestRender()
+		handleStreamChunk(source, d)
 	})
 	socket.on('error', err => {
-		console.error('ais.error:', err)
+		console.error('ais.tcp.error:', err)
 	})
 	socket.on('close', () => {
-		console.error(`ais.close: retrying in ${aisReconnectInterval}`)
+		console.error(`ais.tcp.close: retrying in ${aisReconnectInterval}`)
 		setTimeout(openAisSocket, aisReconnectInterval)
 	})
+}
+
+function handleStreamChunk (source, d) {
+	source.buffer += d.toString()
+	const lines = source.buffer.split('\r\n')
+	source.buffer = lines.pop()
+	const valid = []
+	for (let line of lines) {
+		if (line[0] === '!') {
+			valid.push({ message: line, session: source.session })
+		}
+	}
+	if (valid.length) {
+		buffer.push(...valid)
+		requestRender()
+	}
 }
 
 function openTcpServer () {
@@ -124,16 +170,13 @@ function requestRender () {
 }
 
 function render () {
-	const lines = buffer.split('\r\n')
-	buffer = lines.pop()
-	const firstLine = lines[0]
-	const firstChar = firstLine?.[0]
-	if (firstChar !== '!') {
-		lines.shift()
-	}
+	const items = buffer
+	buffer = []
 	const changes = []
-	for (let m of lines) {
-		const ship = updateShip(m)
+	const lines = []
+	for (let { message, session } of items) {
+		lines.push(message)
+		const ship = updateShip(message, session)
 		if (ship) {
 			changes.push(ship)
 		}
@@ -177,10 +220,10 @@ function getOrCreateShip (mmsi) {
 	return ship
 }
 
-function updateShip (m) {
+function updateShip (m, session) {
 	let ship
 	try {
-		ship = new AisDecoder(m, aisSession)
+		ship = new AisDecoder(m, session)
 	} catch (err) {
 		// console.error('updateShip: bad message', err, ship, m)
 		return
