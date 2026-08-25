@@ -17,13 +17,17 @@ state.url = url
 state.app = document.querySelector('x-app')
 state.log = document.querySelector('x-log')
 
+// get env
+let env = {}
+try {
+	const res = await fetch('/env.json')
+	env = state.env = await res.json()
+} catch (err) {}
+
 // watch ais feed
 const ships = state.ships = {}
-const aisHost = url.params.aisHost || '[::1]'
-const aisPort = url.params.aisPort || 9002
-const ws = new WebSocketPersistent({
-	url: `ws://${aisHost}:${aisPort}`
-})
+const aisUrl = url.params.aisUrl || env.aisUrl || '/'
+const ws = new WebSocketPersistent({ url: aisUrl })
 ws.addEventListener('message', m => {
 	m.data.forEach(s => {
 		const ship = ships[s.mmsi]
