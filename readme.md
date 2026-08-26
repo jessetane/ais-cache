@@ -9,7 +9,7 @@ AIS static data messages containing vessel name, type, dimensions, etc. are only
 ## How
 
 ### Service
-Live deployment in Red Hook covering NYC harbor available for public use (absolutely zero availability guarantees, do NOT use this service for navigational safety):
+[Live deployment](https://jessetane.com/projects/power-station) in Red Hook covering NYC harbor available for public use (absolutely zero availability guarantees, do NOT use this service for navigational safety):
 
 - **Map**: [https://ais.jessetane.com](https://ais.jessetane.com)
 - **TCP**: `ais.jessetane.com:9001` (try connecting your chart plotter)
