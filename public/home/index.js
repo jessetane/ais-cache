@@ -42,7 +42,9 @@ function renderShipMeta (ship) {
 		destination: ship.destination || undefined,
 		length: ship.length || undefined,
 		width: ship.width || undefined,
-		heading: ship.hdg,
+		heading: ship.heading === 0 || (ship.heading && ship.heading !== 511)
+			? ship.heading
+			: undefined,
 		sog: ship.sog,
 		cog: ship.cog,
 		rot: ship.rot,
