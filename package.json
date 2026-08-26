@@ -1,8 +1,10 @@
 {
-  "type": "module",
-  "dependencies": {
-    "hyperbind": "^7.1.0",
-    "url-state": "^6.0.0",
-    "ws": "^8.21.3"
-  }
+	"name": "ais-cache",
+	"version": "1.0.0",
+	"type": "module",
+	"dependencies": {
+		"hyperbind": "^7.1.0",
+		"url-state": "^6.0.0",
+		"ws": "^8.21.3"
+	}
 }

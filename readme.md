@@ -16,17 +16,17 @@ AIS static data messages containing vessel name, type, dimensions, etc. are only
 - **WebSocket**: `wss://ais.jessetane.com:9002` (build your own apps)
 
 ### Server
-Start `web.js` with a serial port, upstream TCP server, or both for input:
+Start `index.js` with a serial port, upstream TCP server, or both for input:
 
 ```bash
 # Direct serial port input (standalone)
-SERIAL_PORT=/dev/ttyAMA0 ./web.js
+SERIAL_PORT=/dev/ttyAMA0 ./index.js
 
 # Upstream TCP source (e.g. from tcp.js or remote feed)
-./web.js
+./index.js
 
 # Both direct serial and upstream TCP source
-SERIAL_PORT=/dev/ttyAMA0 AIS_HOST=example.com AIS_PORT=9000 ./web.js
+SERIAL_PORT=/dev/ttyAMA0 AIS_HOST=example.com AIS_PORT=9000 ./index.js
 ```
 
 ### TCP Stream
@@ -53,7 +53,7 @@ ws.onmessage = ({ data }) => {
 ## Configuration
 Can be done via environment variables:
 
-### `web.js`
+### `index.js`
 - `SERIAL_PORT` (e.g. `/dev/ttyAMA0`, optional)
 - `SERIAL_BAUD_RATE` (`115200`)
 - `SERIAL_PORT_RECONNECT` (`5000`, falls back to `AIS_RECONNECT`)
