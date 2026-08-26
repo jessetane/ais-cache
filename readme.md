@@ -9,11 +9,7 @@ AIS static data messages containing vessel name, type, dimensions, etc. are only
 ## How
 
 ### Service
-[Live deployment](https://jessetane.com/projects/ais-service) covering NYC harbor available for public use (absolutely zero availability guarantees, do NOT use this service for navigational safety):
-
-- **Map**: [https://ais.jessetane.com](https://ais.jessetane.com)
-- **TCP**: `ais.jessetane.com:9001` (try connecting your chart plotter)
-- **WebSocket**: `wss://ais.jessetane.com:9002` (build your own apps)
+[Live deployment](https://ais.jessetane.com) covering NYC harbor available for public use. See [project page](https://jessetane.com/projects/ais-service) for more details.
 
 ### Server
 Start `index.js` with a serial port, upstream TCP server, or both for input:
