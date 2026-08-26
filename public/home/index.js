@@ -34,7 +34,7 @@ function renderShipMeta (ship) {
 		mmsi: ship.mmsi,
 		class: ship.class || undefined,
 		name: ship.shipname,
-		callSign: ship.callsign,
+		callSign: ship.callsign || undefined,
 		stationType: STATION_TYPE[ship.stationType],
 		vesselType: VESSEL_TYPE[ship.cargo],
 		aidType: ATON_TYPE[ship.aidtype],
