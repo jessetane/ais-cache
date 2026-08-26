@@ -1,4 +1,4 @@
-# ais
+# ais-cache
 AIS cache for NMEA over TCP and JSON over WebSocket consumers.
 
 [![Screenshot](public/screenshot.png)](http://ais.jessetane.com)
