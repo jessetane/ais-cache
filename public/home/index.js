@@ -42,10 +42,12 @@ function renderShipMeta (ship) {
 		destination: ship.destination || undefined,
 		length: ship.length || undefined,
 		width: ship.width || undefined,
+		heading: ship.hdg,
 		sog: ship.sog,
 		cog: ship.cog,
 		rot: ship.rot,
-		repeat: ship.repeat,
+		repeat: ship.repeat || undefined,
+		virtual: ship.virtual || undefined,
 		updated: new Date(ship.updated).toLocaleString(),
 	}
 	for (let key in meta) {
