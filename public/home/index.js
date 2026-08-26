@@ -34,6 +34,7 @@ function renderShipMeta (ship) {
 		mmsi: ship.mmsi,
 		class: ship.class || undefined,
 		name: ship.shipname,
+		callSign: ship.callsign,
 		stationType: STATION_TYPE[ship.stationType],
 		vesselType: VESSEL_TYPE[ship.cargo],
 		aidType: ATON_TYPE[ship.aidtype],
@@ -44,6 +45,7 @@ function renderShipMeta (ship) {
 		sog: ship.sog,
 		cog: ship.cog,
 		rot: ship.rot,
+		repeat: ship.repeat,
 		updated: new Date(ship.updated).toLocaleString(),
 	}
 	for (let key in meta) {
