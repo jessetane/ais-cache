@@ -1,6 +1,7 @@
 @import "./reset.css";
 @import "./nav/index.css";
 @import "./home/index.css";
+@import "./map/index.css";
 @import "./log/index.css";
 
 :root {

@@ -13,7 +13,8 @@ export const {
 	Marker3DInteractiveElement,
 	PopoverElement,
 	Model3DElement,
-	Polygon3DElement
+	Polygon3DElement,
+	Polyline3DElement
 } = await google.maps.importLibrary('maps3d')
 
 export const {
