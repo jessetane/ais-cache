@@ -105,21 +105,18 @@ function openTcpServer () {
 		const id = c.remoteAddress
 		console.log('connection.open:', id)
 		tcpConnections.push(c)
+		c.setNoDelay(true)
 		c.on('data', data => {
 			console.log('connection.data:', data.toString())
 			c.destroy()
 		})
-		c.on('end', () => {
-			console.log('connection.end:', id)
-		})
-		c.on('close', () => {
-			close()
-		})
 		c.on('error', err => {
 			console.log('connection.error:', id, err)
-			close()
 		})
-		c.setNoDelay(true)
+		c.on('close', () => {
+			console.log('connection.close:', id)
+			tcpConnections = tcpConnections.filter(_c => _c !== c)
+		})
 		const messages = []
 		for (const [mmsi, ship] of ships.entries()) {
 			for (let t in ship.messages) {
@@ -128,10 +125,6 @@ function openTcpServer () {
 		}
 		if (messages.length) {
 			c.write(messages.join('\r\n') + '\r\n')
-		}
-		function close () {
-			console.log('connection.close:', id)
-			tcpConnections = tcpConnections.filter(_c => _c !== c)
 		}
 	})
 	tcpServer.listen(tcpPort, tcpHost, err => {
@@ -145,20 +138,16 @@ function openWsServer () {
 		console.log('got ws connection')
 		wsConnections.push(ws)
 		console.log('total ws connections:', wsConnections.length)
-		ws.on('close', () => {
-			close()
-		})
 		ws.on('error', err => {
 			console.log('ws connection error:', err)
-			close()
 		})
-		const s = [...ships.values()]
-		ws.send(JSON.stringify(s))
-		function close () {
+		ws.on('close', () => {
 			console.log('ws connection close')
 			wsConnections = wsConnections.filter(c => c !== ws)
 			console.log('total ws connections:', wsConnections.length)
-		}
+		})
+		const s = [...ships.values()]
+		ws.send(JSON.stringify(s))
 	})
 	wsServer.on('listening', () => {
 		console.log('websocket server listening at:', wsServer.address())

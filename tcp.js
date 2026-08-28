@@ -58,25 +58,18 @@ function openTcpServer () {
 			stats.visitors[id] = 0
 		}
 		tcpConnections.push(c)
+		c.setNoDelay(true)
 		c.on('data', data => {
 			console.log('connection.data:', data.toString())
 			c.destroy()
 		})
-		c.on('end', () => {
-			console.log('connection.end:', id)
-		})
-		c.on('close', () => {
-			close()
-		})
 		c.on('error', err => {
 			console.log('connection.error:', id, err)
-			close()
 		})
-		c.setNoDelay(true)
-		function close () {
+		c.on('close', () => {
 			console.log('connection.close:', id)
 			tcpConnections = tcpConnections.filter(_c => _c !== c)
-		}
+		})
 	})
 	tcpServer.listen(tcpPort, tcpHost, err => {
 		console.log('tcp server listening at:', tcpServer.address())
