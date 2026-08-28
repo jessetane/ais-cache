@@ -11,12 +11,12 @@ class MapView extends HTMLElement {
 		map.tilt = 67
 		map.range = 7015
 		map.center = { lat: 40.70875498274823, lng: -74.0064538380301, altitude: 105 }
-		state.addEventListener('ships.change', this.render)
+		state.addEventListener('change.ships', this.render)
 		this.renderInterval = setInterval(this.render, 2500)
 	}
 
 	disconnectedCallback () {
-		state.removeEventListener('ships.change', this.render)
+		state.removeEventListener('change.ships', this.render)
 		clearInterval(this.renderInterval)
 	}
 
