@@ -1,6 +1,9 @@
 import * as gm from '../gmaps.js'
 import aisTTL from '../ais/ttl.js'
-import { calculateVectorEndpoint } from '../geo.js'
+import {
+	calculateOffset,
+	calculateVectorEndpoint
+} from '../geo.js'
 import {
 	NAV_STATUS,
 	STATION_TYPE,
@@ -60,6 +63,28 @@ class Ship {
 		return STATION_COLOR[ship.stationType] || colors.blue
 	}
 
+	get heading () {
+		const ship = this.ship
+		if (ship.hdg === 0 || ship.hdg && ship.hdg !== 511) {
+			return ship.hdg
+		}
+		if (ship.cog === 0 || ship.cog && ship.cog < 360) {
+			return ship.cog
+		}
+	}
+
+	get center () {
+		const ship = this.ship
+		const heading = this.heading
+		const dimA = ship.dimA || 0
+		const dimB = ship.dimB || 0
+		const dimC = ship.dimC || 0
+		const dimD = ship.dimD || 0
+		const dFore = (dimA - dimB) / 2
+		const dPort = (dimC - dimD) / 2
+		return calculateOffset(ship.lat, ship.lon, heading, dFore, dPort)
+	}
+
 	get meta () {
 		const ship = this.ship
 		return {
@@ -74,9 +99,7 @@ class Ship {
 			destination: ship.destination || undefined,
 			length: ship.length || undefined,
 			width: ship.width || undefined,
-			heading: ship.heading === 0 || (ship.heading && ship.heading !== 511)
-				? ship.heading
-				: undefined,
+			heading: this.heading,
 			sog: ship.sog,
 			cog: ship.cog,
 			rot: ship.rot,
@@ -89,7 +112,12 @@ class Ship {
 	render () {
 		const ship = this.ship
 		const now = Date.now()
-		const position = { lat: ship.lat, lng: ship.lon, altitude: 0 }
+		let position = { lat: ship.lat, lng: ship.lon, altitude: 0 }
+		if (!this.skipOffset) {
+			const center = this.center
+			position.lat = center?.lat ?? ship.lat
+			position.lng = center?.lng ?? ship.lon
+		}
 		const age = now - ship.updated
 		const isVessel = ship.stationType === 1
 		const isOld = age >= aisTTL[ship.stationType].oldAge || 0
@@ -103,7 +131,7 @@ class Ship {
 		this.pin.background = `${color}${opacity}`
 		const hasVector = ship.cog !== undefined && ship.cog < 360 && ship.sog !== undefined && ship.sog > 0.3
 		if (hasVector && !isOld) {
-			const endPosition = calculateVectorEndpoint(ship.lat, ship.lon, ship.sog, ship.cog, 1000 * 60)
+			const endPosition = calculateVectorEndpoint(position.lat, position.lng, ship.sog, ship.cog, 1000 * 60)
 			if (!this.vector) {
 				this.vector = new gm.Polyline3DElement({
 					altitudeMode: 'CLAMP_TO_GROUND',
