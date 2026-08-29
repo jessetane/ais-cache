@@ -23,7 +23,7 @@ class MapView extends HTMLElement {
 	render = () => {
 		if (!this.map) return
 		const active = new Set()
-		for (const ship of Object.values(state.ships)) {
+		for (const ship of state.ships) {
 			if (!ship.lat || !ship.lon) continue
 			const mmsi = ship.mmsi
 			active.add(mmsi)

@@ -1,6 +1,5 @@
 import url from 'url-state'
-import WebSocketPersistent from './websocket-persistent.js'
-import aisTTL from './ais/ttl.js'
+import Ships from './ships.js'
 
 // state object setup
 const state = window.state = new EventTarget()
@@ -25,25 +24,9 @@ try {
 } catch (err) {}
 
 // watch ais feed
-const ships = state.ships = {}
 const aisUrl = url.params.aisUrl || env.aisUrl || '/'
-const ws = new WebSocketPersistent({ url: aisUrl })
-ws.addEventListener('message', m => {
-	m.data.forEach(s => {
-		const ship = ships[s.mmsi]
-		if (!ship) {
-			ships[s.mmsi] = s
-		} else {
-			Object.assign(ship, s)
-		}
-	})
-	const now = new Date()
-	for (let ship of Object.values(ships)) {
-		const maxAge = aisTTL[ship.stationType]?.maxAge || 1
-		if (now - ship.updated >= maxAge) {
-			delete ships[ship.mmsi]
-		}
-	}
+const ships = state.ships = new Ships({ url: aisUrl })
+ships.addEventListener('change', function () {
 	state.dispatchEvent(new Event('change.ships'))
 })
-ws.connect()
+
