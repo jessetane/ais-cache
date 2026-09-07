@@ -14,6 +14,7 @@ export const {
 	PopoverElement,
 	Model3DElement,
 	Polygon3DElement,
+	Polygon3DInteractiveElement,
 	Polyline3DElement
 } = await google.maps.importLibrary('maps3d')
 

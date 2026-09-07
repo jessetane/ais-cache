@@ -2,7 +2,8 @@ import * as gm from '../gmaps.js'
 import aisTTL from '../ais/ttl.js'
 import {
 	calculateOffset,
-	calculateVectorEndpoint
+	calculateVectorEndpoint,
+	calculateShipShape
 } from '../geo.js'
 import {
 	NAV_STATUS,
@@ -46,6 +47,7 @@ class Ship {
 		this.pop = null
 		this.pre = null
 		this.vector = null
+		this.model = null
 		this.render()
 	}
 
@@ -145,6 +147,28 @@ class Ship {
 			this.vector.remove()
 			this.vector = null
 		}
+		const hasShape = isVessel || (!ship.stationType && ship.lat && ship.lon)
+		if (hasShape) {
+			const coords = calculateShipShape(ship)
+			if (!this.model) {
+				const ElementClass = gm.Polygon3DInteractiveElement || gm.Polygon3DElement
+				this.model = new ElementClass({
+					altitudeMode: 'RELATIVE_TO_GROUND',
+					extruded: true,
+					strokeWidth: 0,
+					drawsOccludedSegments: false,
+				})
+				this.model.ship = ship
+				this.model.addEventListener('gmp-click', this.showPopover)
+				this.map.append(this.model)
+			}
+			this.model.fillColor = `#cccccc${opacity}`
+			this.model.strokeWidth = 0
+			this.model.outerCoordinates = coords
+		} else if (this.model) {
+			this.model.remove()
+			this.model = null
+		}
 		if (this.pop?.open) {
 			this.renderPopover()
 		}
@@ -182,6 +206,10 @@ class Ship {
 		if (this.vector) {
 			this.vector.remove()
 			this.vector = null
+		}
+		if (this.model) {
+			this.model.remove()
+			this.model = null
 		}
 	}
 }

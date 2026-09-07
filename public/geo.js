@@ -4,7 +4,8 @@ const MS_PER_HOUR = 1000 * 60 * 60
 
 export {
 	calculateVectorEndpoint,
-	calculateOffset
+	calculateOffset,
+	calculateShipShape
 }
 
 function calculateVectorEndpoint (lat, lng, sogKnots, cogDeg, durationMs = 1000 * 60 * 2) {
@@ -49,4 +50,42 @@ function destinationPoint (lat, lng, distanceMeters, bearingDeg) {
 		lng: endLngRad * (180 / Math.PI),
 		altitude: 0
 	}
+}
+
+function calculateShipShape ({ lat, lon, lng, hdg, cog, dimA = 0, dimB = 0, dimC = 0, dimD = 0, length = 0, width = 0 }) {
+	const longitude = lon ?? lng
+	const heading = (hdg === 0 || hdg && hdg !== 511 ? hdg : (cog < 360 ? cog : 0)) ?? 0
+	let a = dimA
+	let b = dimB
+	let c = dimC
+	let d = dimD
+	let l = (a + b) || length || 25
+	let w = (c + d) || width || Math.max(5, l / 5)
+	if (!a && !b) {
+		a = Math.round(l * 0.66)
+		b = l - a
+	}
+	if (!c && !d) {
+		c = w / 2
+		d = w / 2
+	}
+	const height = Math.max(2, w / 2)
+	const chamferLen = l * 0.1
+	const chamferFore = a - chamferLen
+	const centerPort = (c - d) / 2
+	const points = [
+		{ fore: -b, port: c },
+		{ fore: -b, port: -d },
+		{ fore: chamferFore, port: -d },
+		{ fore: a, port: centerPort },
+		{ fore: chamferFore, port: c }
+	]
+	return points.map(function (pt) {
+		const coord = calculateOffset(lat, longitude, heading, pt.fore, pt.port)
+		return {
+			lat: coord.lat,
+			lng: coord.lng,
+			altitude: height
+		}
+	})
 }
