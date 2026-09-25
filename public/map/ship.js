@@ -194,7 +194,7 @@ class Ship {
 			}
 			this.model.fillColor = `#cccccc${opacity}`
 			this.model.strokeWidth = 0
-			this.model.outerCoordinates = coords
+			this.model.path = coords
 		} else if (this.model) {
 			this.model.remove()
 			this.model = null
