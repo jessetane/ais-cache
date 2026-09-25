@@ -11,6 +11,7 @@ import {
 	VESSEL_TYPE,
 	ATON_TYPE,
 } from '../ais/strings.js'
+import { Tween, lerpAngle } from '../tween.js'
 
 const colors = {
 	red: '#dc2626',
@@ -48,6 +49,11 @@ class Ship {
 		this.pre = null
 		this.vector = null
 		this.model = null
+		this.tween = new Tween({
+			duration: 500,
+			interpolators: { hdg: lerpAngle },
+			onUpdate: this.updateGeometry
+		})
 		this.render()
 	}
 
@@ -75,16 +81,20 @@ class Ship {
 		}
 	}
 
-	get center () {
+	getCenter (lat, lon, heading) {
 		const ship = this.ship
-		const heading = this.heading
 		const dimA = ship.dimA || 0
 		const dimB = ship.dimB || 0
 		const dimC = ship.dimC || 0
 		const dimD = ship.dimD || 0
 		const dFore = (dimA - dimB) / 2
 		const dPort = (dimC - dimD) / 2
-		return calculateOffset(ship.lat, ship.lon, heading, dFore, dPort)
+		return calculateOffset(lat, lon, heading, dFore, dPort)
+	}
+
+	get center () {
+		const pos = this.tween.current || this.ship
+		return this.getCenter(pos.lat, pos.lon, pos.hdg ?? this.heading)
 	}
 
 	get meta () {
@@ -114,23 +124,37 @@ class Ship {
 	render () {
 		const ship = this.ship
 		const now = Date.now()
-		let position = { lat: ship.lat, lng: ship.lon, altitude: 0 }
-		if (!this.skipOffset) {
-			const center = this.center
-			position.lat = center?.lat ?? ship.lat
-			position.lng = center?.lng ?? ship.lon
-		}
 		const age = now - ship.updated
 		const isVessel = ship.stationType === 1
-		const isOld = age >= aisTTL[ship.stationType].oldAge || 0
+		const isOld = age >= (aisTTL[ship.stationType]?.oldAge || 0)
 		const isMoving = ship.sog !== undefined && ship.sog > 0.3
 		const opacity = isOld || (isVessel && !isMoving) ? '80' : 'ff'
 		const color = this.color
-		this.marker.position = position
 		this.pin.glyphText = isOld ? '✕' : null
 		this.pin.glyphColor = `#222222${opacity}`
 		this.pin.borderColor = `#222222${opacity}`
 		this.pin.background = `${color}${opacity}`
+		if (this.pop?.open) {
+			this.renderPopover()
+		}
+		this.tween.to({ lat: ship.lat, lon: ship.lon, hdg: this.heading })
+	}
+
+	updateGeometry = ({ lat, lon, hdg }) => {
+		const ship = this.ship
+		const now = Date.now()
+		const age = now - ship.updated
+		const isVessel = ship.stationType === 1
+		const isOld = age >= (aisTTL[ship.stationType]?.oldAge || 0)
+		const isMoving = ship.sog !== undefined && ship.sog > 0.3
+		const opacity = isOld || (isVessel && !isMoving) ? '80' : 'ff'
+		let position = { lat, lng: lon, altitude: 0 }
+		if (!this.skipOffset) {
+			const center = this.getCenter(lat, lon, hdg)
+			position.lat = center?.lat ?? lat
+			position.lng = center?.lng ?? lon
+		}
+		this.marker.position = position
 		const hasVector = ship.cog !== undefined && ship.cog < 360 && ship.sog !== undefined && ship.sog > 0.3
 		if (hasVector && !isOld) {
 			const endPosition = calculateVectorEndpoint(position.lat, position.lng, ship.sog, ship.cog, 1000 * 60)
@@ -147,9 +171,9 @@ class Ship {
 			this.vector.remove()
 			this.vector = null
 		}
-		const hasShape = isVessel || (!ship.stationType && ship.lat && ship.lon)
+		const hasShape = isVessel || (!ship.stationType && lat && lon)
 		if (hasShape) {
-			const coords = calculateShipShape(ship)
+			const coords = calculateShipShape({ ...ship, lat, lon, hdg })
 			if (!this.model) {
 				const ElementClass = gm.Polygon3DInteractiveElement || gm.Polygon3DElement
 				this.model = new ElementClass({
@@ -168,9 +192,6 @@ class Ship {
 		} else if (this.model) {
 			this.model.remove()
 			this.model = null
-		}
-		if (this.pop?.open) {
-			this.renderPopover()
 		}
 	}
 
@@ -199,6 +220,7 @@ class Ship {
 	}
 
 	destroy () {
+		this.tween.cancel()
 		if (this.pop) {
 			this.pop.open = false
 		}
