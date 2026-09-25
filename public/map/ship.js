@@ -71,6 +71,17 @@ class Ship {
 		return STATION_COLOR[ship.stationType] || colors.blue
 	}
 
+	get opacity () {
+		const ship = this.ship
+		const age = Date.now() - ship.updated
+		const isVessel = ship.stationType === 1
+		const isOld = age >= (aisTTL[ship.stationType]?.oldAge || 0)
+		const isMoving = ship.sog !== undefined && ship.sog > 0.3
+		if (isOld) return '80'
+		if (isVessel && !isMoving) return 'c0'
+		return 'ff'
+	}
+
 	get heading () {
 		const ship = this.ship
 		if (ship.hdg === 0 || ship.hdg && ship.hdg !== 511) {
@@ -123,12 +134,9 @@ class Ship {
 
 	render () {
 		const ship = this.ship
-		const now = Date.now()
-		const age = now - ship.updated
-		const isVessel = ship.stationType === 1
+		const age = Date.now() - ship.updated
 		const isOld = age >= (aisTTL[ship.stationType]?.oldAge || 0)
-		const isMoving = ship.sog !== undefined && ship.sog > 0.3
-		const opacity = isOld || (isVessel && !isMoving) ? '80' : 'ff'
+		const opacity = this.opacity
 		const color = this.color
 		this.pin.glyphText = isOld ? '✕' : null
 		this.pin.glyphColor = `#222222${opacity}`
@@ -142,12 +150,10 @@ class Ship {
 
 	updateGeometry = ({ lat, lon, hdg }) => {
 		const ship = this.ship
-		const now = Date.now()
-		const age = now - ship.updated
+		const age = Date.now() - ship.updated
 		const isVessel = ship.stationType === 1
 		const isOld = age >= (aisTTL[ship.stationType]?.oldAge || 0)
-		const isMoving = ship.sog !== undefined && ship.sog > 0.3
-		const opacity = isOld || (isVessel && !isMoving) ? '80' : 'ff'
+		const opacity = this.opacity
 		let position = { lat, lng: lon, altitude: 0 }
 		if (!this.skipOffset) {
 			const center = this.getCenter(lat, lon, hdg)
