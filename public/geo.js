@@ -8,8 +8,8 @@ export {
 	calculateShipShape
 }
 
-function calculateVectorEndpoint (lat, lng, sogKnots, cogDeg, durationMs = 1000 * 60 * 2) {
-	const distanceMeters = sogKnots * METERS_PER_NM * durationMs / MS_PER_HOUR
+function calculateVectorEndpoint (lat, lng, sogKnots, cogDeg, durationMs = 1000 * 60 * 2, extraMeters = 0) {
+	const distanceMeters = (sogKnots * METERS_PER_NM * durationMs / MS_PER_HOUR) + extraMeters
 	return destinationPoint(lat, lng, distanceMeters, cogDeg)
 }
 

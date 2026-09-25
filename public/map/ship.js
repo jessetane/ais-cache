@@ -163,16 +163,23 @@ class Ship {
 		this.marker.position = position
 		const hasVector = ship.cog !== undefined && ship.cog < 360 && ship.sog !== undefined && ship.sog > 0.3
 		if (hasVector && !isOld) {
-			const endPosition = calculateVectorEndpoint(position.lat, position.lng, ship.sog, ship.cog, 1000 * 60)
+			const offY = (ship.dimA + ship.dimB || ship.length || 25) / 2
+			const offX = (ship.dimC + ship.dimD || ship.width || 5) / 2
+			const diff = Math.abs(ship.cog - (hdg ?? this.heading ?? ship.cog)) % 180
+			const angle = diff > 90 ? 180 - diff : diff
+			const extra = offY + (offX - offY) * (angle / 90)
+			const alt = Math.max(1, offX / 2)
+			const start = { ...position, altitude: alt }
+			const end = { ...calculateVectorEndpoint(position.lat, position.lng, ship.sog, ship.cog, 1000 * 60, extra), altitude: alt }
 			if (!this.vector) {
 				this.vector = new gm.Polyline3DElement({
-					altitudeMode: 'CLAMP_TO_GROUND',
+					altitudeMode: 'RELATIVE_TO_GROUND',
 					strokeWidth: 1,
 				})
 				this.map.append(this.vector)
 			}
 			this.vector.strokeColor = `#000000${opacity}`
-			this.vector.path = [position, endPosition]
+			this.vector.path = [start, end]
 		} else if (this.vector) {
 			this.vector.remove()
 			this.vector = null
