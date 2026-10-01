@@ -11,12 +11,15 @@ class Ships extends EventTarget {
 	}
 
 	onmessage (m) {
+		const updated = []
 		m.data.forEach(s => {
 			const ship = this[s.mmsi]
 			if (!ship) {
 				this[s.mmsi] = s
+				updated.push(s)
 			} else {
 				Object.assign(ship, s)
+				updated.push(ship)
 			}
 		})
 		const now = new Date()
@@ -26,7 +29,7 @@ class Ships extends EventTarget {
 				delete this[ship.mmsi]
 			}
 		}
-		this.dispatchEvent(new Event('change'))
+		this.dispatchEvent(new CustomEvent('change', { detail: updated }))
 	}
 
 	*[Symbol.iterator] () {

@@ -26,7 +26,7 @@ try {
 // watch ais feed
 const aisUrl = url.params.aisUrl || env.aisUrl || '/'
 const ships = state.ships = new Ships({ url: aisUrl })
-ships.addEventListener('change', function () {
-	state.dispatchEvent(new Event('change.ships'))
+ships.addEventListener('change', function (e) {
+	state.dispatchEvent(new CustomEvent('change.ships', { detail: e.detail }))
 })
 
