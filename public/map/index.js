@@ -67,8 +67,9 @@ class MapView extends HTMLElement {
 		const map = this.map = this.querySelector('gmp-map-3d')
 		for (const event of cameraEvents) map.addEventListener(event, this.onCameraChange)
 		state.addEventListener('change', this.onUrlChange)
-		state.addEventListener('change.ships', this.render)
-		this.renderInterval = setInterval(this.render, 2500)
+		state.addEventListener('change.ships', this.onShipsChange)
+		document.addEventListener('visibilitychange', this.onVisibilityChange)
+		this.renderInterval = setInterval(this.render, 15000)
 		this.updateCamera()
 	}
 
@@ -77,9 +78,14 @@ class MapView extends HTMLElement {
 		if (this.map) {
 			for (const event of cameraEvents) this.map.removeEventListener(event, this.onCameraChange)
 		}
+		document.removeEventListener('visibilitychange', this.onVisibilityChange)
 		state.removeEventListener('change', this.onUrlChange)
-		state.removeEventListener('change.ships', this.render)
+		state.removeEventListener('change.ships', this.onShipsChange)
 		clearInterval(this.renderInterval)
+	}
+
+	onVisibilityChange = () => {
+		if (!document.hidden) this.render()
 	}
 
 	onUrlChange = () => {
@@ -113,20 +119,37 @@ class MapView extends HTMLElement {
 		if (changed) state.url.query(mapCam, true)
 	}
 
+	renderShip = (ship) => {
+		if (!ship.lat || !ship.lon) return
+		const mmsi = ship.mmsi
+		let item = this.ships.get(mmsi)
+		if (!item) {
+			item = new Ship(this.map, ship)
+			this.ships.set(mmsi, item)
+		} else {
+			item.render()
+		}
+	}
+
+	onShipsChange = (e) => {
+		if (!this.map || document.hidden) return
+		if (e.detail && Array.isArray(e.detail)) {
+			for (const ship of e.detail) {
+				this.renderShip(ship)
+			}
+		} else {
+			this.render()
+		}
+	}
+
 	render = () => {
-		if (!this.map) return
+		if (!this.map || document.hidden) return
 		const active = new Set()
 		for (const ship of state.ships) {
 			if (!ship.lat || !ship.lon) continue
 			const mmsi = ship.mmsi
 			active.add(mmsi)
-			let item = this.ships.get(mmsi)
-			if (!item) {
-				item = new Ship(this.map, ship)
-				this.ships.set(mmsi, item)
-			} else {
-				item.render()
-			}
+			this.renderShip(ship)
 		}
 		for (const [mmsi, ship] of this.ships.entries()) {
 			if (!active.has(mmsi)) {
