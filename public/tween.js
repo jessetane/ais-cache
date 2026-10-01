@@ -24,6 +24,47 @@ function easeInOut (t) {
 	return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
 }
 
+const activeTweens = new Set()
+let animFrame = null
+
+function startTicker () {
+	if (!animFrame && activeTweens.size > 0) {
+		animFrame = requestAnimationFrame(tick)
+	}
+}
+
+function stopTicker () {
+	if (animFrame && activeTweens.size === 0) {
+		cancelAnimationFrame(animFrame)
+		animFrame = null
+	}
+}
+
+function tick (now) {
+	if (activeTweens.size === 0) {
+		animFrame = null
+		return
+	}
+	animFrame = requestAnimationFrame(tick)
+	for (const tween of activeTweens) {
+		const elapsed = now - tween.startTime
+		const t = Math.min(1, Math.max(0, elapsed / tween.duration))
+		const isFinal = t >= 1
+		const progress = tween.easing(t)
+		for (const key of Object.keys(tween.target)) {
+			const lerpFn = tween.interpolators[key] || lerp
+			tween.current[key] = lerpFn(tween.from[key], tween.target[key], progress)
+		}
+		tween.onUpdate?.(tween.current, isFinal)
+		if (isFinal) {
+			activeTweens.delete(tween)
+		}
+	}
+	if (activeTweens.size === 0) {
+		stopTicker()
+	}
+}
+
 class Tween {
 	constructor ({ duration = 500, easing = easeInOut, onUpdate, interpolators = {} } = {}) {
 		this.duration = duration
@@ -32,14 +73,16 @@ class Tween {
 		this.interpolators = interpolators
 		this.current = null
 		this.target = null
-		this.animFrame = null
+		this.from = null
+		this.startTime = 0
 	}
 
 	set (values) {
 		this.cancel()
+		const hasChange = !this.current || Object.entries(values).some(([k, v]) => this.current[k] !== v)
 		this.current = { ...values }
 		this.target = { ...values }
-		this.onUpdate?.(this.current)
+		if (hasChange) this.onUpdate?.(this.current, true)
 	}
 
 	to (targets) {
@@ -47,37 +90,24 @@ class Tween {
 			this.set(targets)
 			return
 		}
-		const hasChange = Object.entries(targets).some(([k, v]) => this.target?.[k] !== v)
-		if (!hasChange) {
-			if (!this.animFrame) this.onUpdate?.(this.current)
+		if (typeof document !== 'undefined' && document.hidden) {
+			this.set(targets)
 			return
 		}
-		this.cancel()
-		const from = { ...this.current }
-		this.target = { ...targets }
-		const startTime = performance.now()
-		const step = (now) => {
-			const elapsed = now - startTime
-			const t = Math.min(1, Math.max(0, elapsed / this.duration))
-			const progress = this.easing(t)
-			for (const key of Object.keys(targets)) {
-				const lerpFn = this.interpolators[key] || lerp
-				this.current[key] = lerpFn(from[key], targets[key], progress)
-			}
-			this.onUpdate?.(this.current)
-			if (t < 1) {
-				this.animFrame = requestAnimationFrame(step)
-			} else {
-				this.animFrame = null
-			}
+		const hasChange = Object.entries(targets).some(([k, v]) => this.target?.[k] !== v)
+		if (!hasChange) {
+			if (!activeTweens.has(this)) this.onUpdate?.(this.current, true)
+			return
 		}
-		this.animFrame = requestAnimationFrame(step)
+		this.from = { ...this.current }
+		this.target = { ...targets }
+		this.startTime = performance.now()
+		activeTweens.add(this)
+		startTicker()
 	}
 
 	cancel () {
-		if (this.animFrame) {
-			cancelAnimationFrame(this.animFrame)
-			this.animFrame = null
-		}
+		activeTweens.delete(this)
+		stopTicker()
 	}
 }
