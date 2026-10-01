@@ -138,14 +138,24 @@ class Ship {
 		const isOld = age >= (aisTTL[ship.stationType]?.oldAge || 0)
 		const opacity = this.opacity
 		const color = this.color
-		this.pin.glyphText = isOld ? '✕' : null
-		this.pin.glyphColor = `#222222${opacity}`
-		this.pin.borderColor = `#222222${opacity}`
-		this.pin.background = `${color}${opacity}`
+		const glyphText = isOld ? '✕' : null
+		const glyphColor = `#222222${opacity}`
+		const borderColor = `#222222${opacity}`
+		const background = `${color}${opacity}`
+		if (this.pin.glyphText !== glyphText) this.pin.glyphText = glyphText
+		if (this.pin.glyphColor !== glyphColor) this.pin.glyphColor = glyphColor
+		if (this.pin.borderColor !== borderColor) this.pin.borderColor = borderColor
+		if (this.pin.background !== background) this.pin.background = background
 		if (this.pop?.open) {
 			this.renderPopover()
 		}
-		this.tween.to({ lat: ship.lat, lon: ship.lon, hdg: this.heading })
+		const isMoving = ship.sog !== undefined && ship.sog > 0.3
+		const isVessel = ship.stationType === 1
+		if (!isMoving || !isVessel) {
+			this.tween.set({ lat: ship.lat, lon: ship.lon, hdg: this.heading })
+		} else {
+			this.tween.to({ lat: ship.lat, lon: ship.lon, hdg: this.heading })
+		}
 	}
 
 	updateGeometry = ({ lat, lon, hdg }) => {
@@ -160,7 +170,10 @@ class Ship {
 			position.lat = center?.lat ?? lat
 			position.lng = center?.lng ?? lon
 		}
-		this.marker.position = position
+		if (!this.lastPos || this.lastPos.lat !== position.lat || this.lastPos.lng !== position.lng || this.lastPos.altitude !== position.altitude) {
+			this.marker.position = position
+			this.lastPos = position
+		}
 		const hasVector = ship.cog !== undefined && ship.cog < 360 && ship.sog !== undefined && ship.sog > 0.3
 		if (hasVector && !isOld) {
 			const offY = (ship.dimA + ship.dimB || ship.length || 25) / 2
@@ -178,7 +191,8 @@ class Ship {
 				})
 				this.map.append(this.vector)
 			}
-			this.vector.strokeColor = `#000000${opacity}`
+			const strokeColor = `#000000${opacity}`
+			if (this.vector.strokeColor !== strokeColor) this.vector.strokeColor = strokeColor
 			this.vector.path = [start, end]
 		} else if (this.vector) {
 			this.vector.remove()
@@ -199,8 +213,9 @@ class Ship {
 				this.model.addEventListener('gmp-click', this.showPopover)
 				this.map.append(this.model)
 			}
-			this.model.fillColor = `#cccccc${opacity}`
-			this.model.strokeWidth = 0
+			const fillColor = `#cccccc${opacity}`
+			if (this.model.fillColor !== fillColor) this.model.fillColor = fillColor
+			if (this.model.strokeWidth !== 0) this.model.strokeWidth = 0
 			this.model.path = coords
 		} else if (this.model) {
 			this.model.remove()
