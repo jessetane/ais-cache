@@ -33,6 +33,13 @@ const STATION_COLOR = {
 	7: colors.pink,		// EPIRB
 }
 
+function toFeet (meters, decimals = 0) {
+	if (!meters) return
+	const feet = meters * 3.28084
+	const rounded = decimals > 0 ? Number(feet.toFixed(decimals)) : Math.round(feet)
+	return `${rounded} ft`
+}
+
 class Ship {
 	constructor (map, ship) {
 		this.map = map
@@ -120,10 +127,11 @@ class Ship {
 			aidType: ATON_TYPE[ship.aidtype],
 			status: NAV_STATUS[ship.navstatus],
 			destination: ship.destination || undefined,
-			length: ship.length || undefined,
-			width: ship.width || undefined,
+			length: toFeet(ship.length),
+			width: toFeet(ship.width),
+			draught: toFeet(ship.draught, 1),
 			heading: this.heading,
-			sog: ship.sog,
+			sog: typeof ship.sog === 'number' ? `${ship.sog} kts` : undefined,
 			cog: ship.cog,
 			rot: ship.rot,
 			repeat: ship.repeat || undefined,
