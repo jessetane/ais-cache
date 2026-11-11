@@ -6,5 +6,6 @@
 		"hyperbind": "^7.1.0",
 		"url-state": "^6.0.0",
 		"ws": "^8.21.3"
-	}
+	},
+	"license": "MIT"
 }
