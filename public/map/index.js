@@ -71,6 +71,7 @@ class MapView extends HTMLElement {
 		document.addEventListener('visibilitychange', this.onVisibilityChange)
 		this.renderInterval = setInterval(this.render, 15000)
 		this.updateCamera()
+		this.render()
 	}
 
 	disconnectedCallback () {
